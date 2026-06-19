@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jures One | CRM Jurídico V 0.1</title>
+    <title>Jures One | CRM Jurídico V 0.15</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -71,6 +71,10 @@
                         <span class="nav-icon" aria-hidden="true">R$</span>
                         Financeiro
                     </button>
+                    <button class="nav-link" type="button" data-view="tasks">
+                     <span class="nav-icon">✓</span>
+                     Tarefas
+                    </button>
                 </nav>
 
                 <button id="logoutButton" class="btn btn-secondary sidebar-logout" type="button">Sair</button>
@@ -85,7 +89,7 @@
                     <div class="topbar-actions">
                         <div class="clock-stack">
                             <span id="currentDate" class="date-chip date-display"></span>
-                            <span class="credit-chip">Feito por Felipe Lemos - 2026</span>
+                            <span class="credit-chip">2026</span>
                         </div>
                         <button id="mobileMenuButton" class="icon-button" type="button" aria-label="Abrir menu">☰</button>
                     </div>
@@ -499,7 +503,76 @@
                 </section>
             </main>
         </section>
+        
+       <section id="tasksSection" class="content-section">
+            <div class="workspace-grid">
+                <!-- Formulário de tarefas -->
+                <form id="taskForm" class="workspace-panel form-grid">
+                    <div class="section-heading full-width">
+                        <div>
+                            <p class="eyebrow">Gestão interna</p>
+                            <h3>Nova tarefa</h3>
+                        </div>
+                    </div>
 
+                    <label class="field">
+                        <span>Solicitante</span>
+                        <input id="taskRequester" type="text" required>
+                    </label>
+
+                    <label class="field">
+                        <span>Responsável</span>
+                        <input id="taskResponsible" type="text" required>
+                    </label>
+
+                    <label class="field">
+                        <span>Cliente</span>
+                        <select id="taskClient">
+                            <option value="">Selecione um cliente</option>
+                        </select>
+                    </label>
+
+                    <label class="field">
+                        <span>Status</span>
+                        <select id="taskStatus">
+                            <option value="Aberta">Aberta</option>
+                            <option value="Pendente">Pendente</option>
+                            <option value="Concluída">Concluída</option>
+                        </select>
+                    </label>
+
+                    <label class="field">
+                        <span>Título</span>
+                        <input id="taskTitle" type="text" required>
+                    </label>
+
+                    <label class="field">
+                        <span>Prazo</span>
+                        <input id="taskDueDate" type="date">
+                    </label>
+
+                    <label class="field full-width">
+                        <span>Descrição da tarefa</span>
+                        <textarea id="taskDescription" rows="4"></textarea>
+                    </label>
+
+                    <button class="btn btn-primary full-width" type="submit">Salvar tarefa</button>
+                </form>
+
+                <!-- Lista de tarefas -->
+                <section class="workspace-panel">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">Painel</p>
+                            <h3>Tarefas cadastradas</h3>
+                        </div>
+                    </div>
+                    <div id="taskList"></div>
+                </section>
+            </div>
+        </section>
+
+        <!-- Modal de confirmação -->
         <div id="confirmOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
             <div class="modal-panel">
                 <div>
@@ -514,6 +587,7 @@
             </div>
         </div>
 
+        <!-- Modal de visualização de documentos -->
         <div id="documentPreviewOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="documentPreviewTitle">
             <div class="modal-panel preview-modal">
                 <div class="preview-header">
@@ -527,9 +601,9 @@
                 <div id="documentPreviewBody" class="preview-frame"></div>
             </div>
         </div>
-    </div>
+    </main>
     <footer>
-        versão 0.1 Beta
+        versão 0.15.0 Beta
     </footer>
     <script src="app.js"></script>
 </body>

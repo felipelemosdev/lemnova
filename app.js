@@ -15,7 +15,7 @@ const DATABASE_CONFIG = {
         [STORAGE_KEYS.clients]: "clients",
         [STORAGE_KEYS.documents]: "documents",
         [STORAGE_KEYS.finance]: "finance",
-        [STORAGE_KEYS.events]: "events"
+        [STORAGE_KEYS.events]: "events",
     },
     metaStore: "meta",
     legacyMigratedKey: "legacyMigrated"
@@ -33,7 +33,8 @@ const appState = {
     pendingDeleteFinanceId: null,
     activeClientDetailsId: null,
     lastCepLookup: "",
-    clockTimer: null
+    clockTimer: null,
+    tasks: [],
 };
 
 const elements = {};
@@ -147,6 +148,13 @@ function cacheElements() {
     elements.feesTotal = document.getElementById("feesTotal");
     elements.paymentsTotal = document.getElementById("paymentsTotal");
     elements.receiptsTotal = document.getElementById("receiptsTotal");
+    elements.taskForm = document.getElementById("taskForm");
+    elements.taskList = document.getElementById("taskList");
+    elements.taskTitle = document.getElementById("taskTitle");
+    elements.taskResponsible = document.getElementById("taskResponsible");
+    elements.taskPriority = document.getElementById("taskPriority");
+    elements.taskDueDate = document.getElementById("taskDueDate");
+    elements.taskDescription = document.getElementById("taskDescription");
 }
 
 function bindEvents() {
