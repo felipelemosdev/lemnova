@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jures One | CRM Jurídico V 0.15</title>
+    <title>Jures One | CRM Jurídico V 0.15.7</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -16,7 +16,7 @@
                     <h1 id="loginTitle">Jures One</h1>
                 </div>
             </div>
-
+                        /* TELA INICIAL /*
             <form id="loginForm" class="login-panel" autocomplete="on">
                 <div>
                     <h2>Acesse sua área</h2>
@@ -93,109 +93,198 @@
                     <div class="topbar-actions">
                         <div class="clock-stack">
                             <span id="currentDate" class="date-chip date-display"></span>
-                            <span class="credit-chip">2026</span>
+                            <!-- * BOTÃO CREDITO *<span class="credit-chip">2026</span>-->
                         </div>
                         <button id="mobileMenuButton" class="icon-button" type="button" aria-label="Abrir menu">☰</button>
                     </div>
                 </header>
 
                 <section id="dashboardSection" class="content-section active-section">
-                    <!-- Botão imprimir dashboard -->
-                    <div class="dash-topbar">
-                        <button class="btn btn-ghost btn-print" type="button" onclick="printSection('dashboardSection', 'Dashboard')">🖨 Imprimir Dashboard</button>
-                    </div>
 
-                    <!-- Dashboard em 3 colunas -->
-                    <div class="dashboard-3col">
+    <!--* Topo IMPRESSÃO *
+    <div class="dash-topbar">
+        <button class="btn btn-ghost btn-print" type="button"
+            onclick="printSection('dashboardSection', 'Dashboard')">
+            🖨 Imprimir Dashboard
+        </button>
+    </div> -->
 
-                        <!-- COLUNA 1: Calendário -->
-                        <section class="workspace-panel dash-col">
-                            <div class="section-heading">
-                                <div>
-                                    <p class="eyebrow">Calendário</p>
-                                    <h3 id="calendarToday">Hoje</h3>
-                                </div>
-                            </div>
-                            <div id="dashCalendarWidget" class="calendar-widget"></div>
-                            <div class="dash-stats-mini">
-                                <div class="dash-stat-item">
-                                    <span class="dash-stat-label">Próximo evento</span>
-                                    <p id="calendarNextEvent" class="dash-stat-value">Nenhum evento.</p>
-                                </div>
-                                <div class="dash-stat-item">
-                                    <span class="dash-stat-label">Total de eventos</span>
-                                    <strong id="eventCount" class="dash-stat-big">0</strong>
-                                </div>
-                                <div class="dash-stat-item">
-                                    <span class="dash-stat-label">Alertas ativos</span>
-                                    <p id="eventAlertCount" class="dash-stat-value">Nenhum alerta.</p>
-                                </div>
-                                <div class="dash-stat-item">
-                                    <span class="dash-stat-label">Tarefas em aberto</span>
-                                    <strong id="taskOpenCount" class="dash-stat-big">0</strong>
-                                </div>
-                                <div class="dash-stat-item">
-                                    <p id="taskOpenText" class="dash-stat-value">Nenhuma tarefa em aberto.</p>
-                                </div>
-                            </div>
-                        </section>
+    <!-- Indicadores -->
+    <div class="dashboard-summary-grid">
 
-                        <!-- COLUNA 2: Painel de Tarefas -->
-                        <section class="workspace-panel dash-col">
-                            <div class="section-heading">
-                                <div>
-                                    <p class="eyebrow">Gestão de tarefas</p>
-                                    <h3>Painel de tarefas</h3>
-                                </div>
-                            </div>
-                            <div class="task-status-columns-vert">
-                                <div class="task-col-mini">
-                                    <div class="task-column-header task-col-overdue">
-                                        <span>Atrasadas</span>
-                                        <span id="dashTaskOverdueCount" class="task-col-count">0</span>
-                                    </div>
-                                    <div id="dashTaskOverdueList" class="task-column-list"></div>
-                                </div>
-                                <div class="task-col-mini">
-                                    <div class="task-column-header task-col-today">
-                                        <span>Vencem hoje</span>
-                                        <span id="dashTaskTodayCount" class="task-col-count">0</span>
-                                    </div>
-                                    <div id="dashTaskTodayList" class="task-column-list"></div>
-                                </div>
-                                <div class="task-col-mini">
-                                    <div class="task-column-header task-col-upcoming">
-                                        <span>Próximas</span>
-                                        <span id="dashTaskUpcomingCount" class="task-col-count">0</span>
-                                    </div>
-                                    <div id="dashTaskUpcomingList" class="task-column-list"></div>
-                                </div>
-                                <div class="task-col-mini">
-                                    <div class="task-column-header task-col-done">
-                                        <span>Concluídas</span>
-                                        <span id="dashTaskDoneCount" class="task-col-count">0</span>
-                                    </div>
-                                    <div id="dashTaskDoneList" class="task-column-list"></div>
-                                </div>
-                            </div>
-                        </section>
+        <article class="summary-card">
+            <span>Clientes</span>
+            <strong id="dashClientCount">0</strong>
+            <p>Total cadastrados</p>
+        </article>
 
-                        <!-- COLUNA 3: Agenda -->
-                        <section class="workspace-panel dash-col">
-                            <div class="section-heading">
-                                <div>
-                                    <p class="eyebrow">Agenda</p>
-                                    <h3>Próximos eventos</h3>
-                                </div>
-                                <button id="dashAddEventButton" class="btn btn-primary" type="button">+ Novo</button>
-                            </div>
-                            <div id="dashEventList" class="compact-list">
-                                <p class="empty-state">Nenhum evento cadastrado.</p>
-                            </div>
-                        </section>
+        <article class="summary-card">
+            <span>Processos</span>
+            <strong id="dashProcessCount">0</strong>
+            <p>Total cadastrados</p>
+        </article>
 
-                    </div>
-                </section>
+        <article class="summary-card">
+            <span>Tarefas</span>
+            <strong id="taskOpenCount">0</strong>
+            <p>Em aberto</p>
+        </article>
+
+        <article class="summary-card">
+            <span>Audiências</span>
+            <strong id="eventCount">0</strong>
+            <p>Próximos eventos</p>
+        </article>
+
+    </div>
+
+    <!-- Área principal -->
+    <div class="dashboard-2x2-grid">
+
+        <!-- Próximos compromissos -->
+        <section class="workspace-panel">
+
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Agenda</p>
+                    <h3>Próximos compromissos</h3>
+                </div>
+
+                <button id="dashAddEventButton"
+                    class="btn btn-primary"
+                    type="button">
+                    + Novo
+                </button>
+            </div>
+
+            <div id="dashEventList" class="compact-list">
+                <p class="empty-state">
+                    Nenhum evento cadastrado.
+                </p>
+            </div>
+
+        </section>
+
+        <!-- Tarefas -->
+        <section class="workspace-panel">
+
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Tarefas</p>
+                    <h3>Pendências</h3>
+                </div>
+            </div>
+
+            <div class="dashboard-task-cards">
+
+               <div class="task-col-mini">
+
+    <div class="task-column-header task-col-overdue">
+        <span>Atrasadas</span>
+        <span id="dashTaskOverdueCount" class="task-col-count">0</span>
+    </div>
+
+    <div id="dashTaskOverdueList" class="task-column-list"></div>
+
+</div>
+
+<div class="task-col-mini">
+
+    <div class="task-column-header task-col-today">
+        <span>Hoje</span>
+        <span id="dashTaskTodayCount" class="task-col-count">0</span>
+    </div>
+
+    <div id="dashTaskTodayList" class="task-column-list"></div>
+
+</div>
+
+<div class="task-col-mini">
+
+    <div class="task-column-header task-col-upcoming">
+        <span>Próximas</span>
+        <span id="dashTaskUpcomingCount" class="task-col-count">0</span>
+    </div>
+
+    <div id="dashTaskUpcomingList" class="task-column-list"></div>
+
+</div>
+
+<div class="task-col-mini">
+
+    <div class="task-column-header task-col-done">
+        <span>Concluídas</span>
+        <span id="dashTaskDoneCount" class="task-col-count">0</span>
+    </div>
+
+    <div id="dashTaskDoneList" class="task-column-list"></div>
+
+</div>
+
+                </div>
+
+            
+
+        </section>
+
+        <!-- Financeiro -->
+        <section class="workspace-panel">
+
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Financeiro</p>
+                    <h3>Resumo financeiro</h3>
+                </div>
+            </div>
+
+            <div class="finance-overview">
+
+                <article class="summary-card">
+                    <span>Honorários</span>
+                    <strong id="feesTotal">R$ 0,00</strong>
+                    <p>Entradas</p>
+                </article>
+
+                <article class="summary-card">
+                    <span>Custos</span>
+                    <strong id="costsTotal">R$ 0,00</strong>
+                    <p>Despesas</p>
+                </article>
+
+                <article class="summary-card">
+                    <span>Saldo</span>
+                    <strong id="balanceTotal">R$ 0,00</strong>
+                    <p>Resultado</p>
+                </article>
+
+            </div>
+
+        </section>
+
+        <!-- Atividades -->
+        <section class="workspace-panel">
+
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Atividades</p>
+                    <h3>Últimas movimentações</h3>
+                </div>
+            </div>
+
+            <div id="dashRecentActivity"
+                class="compact-list">
+
+                <p class="empty-state">
+                    Nenhuma movimentação recente.
+                </p>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</section>
 
                 <section id="clientsSection" class="content-section">
                     <div class="client-page">
@@ -744,9 +833,10 @@
             </div>
         </div>
     </section>
-    <footer>
-        versão 0.15.7 Beta
-    </footer>
+    <footer class="footer">
+    <span>Jures One © 2026 • BETA</span>
+    <span class="footer-right">Versão 0.15.7 • Sistema interno</span>
+</footer>
     <script src="app.js"></script>
 </body>
 </html>

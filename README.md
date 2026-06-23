@@ -87,3 +87,6 @@ Estudante de Análise e Desenvolvimento de Sistemas.
 ---
 
 Projeto desenvolvido para aprendizado, prática profissional e evolução contínua na área de desenvolvimento de software.
+
+EVOLUÇÃO VERSÃO 0.15.7 
+NOVA DASH ATUALIZADA, COM A RESPANSIVIDADE E NOVO FORMATA NA TELA DASH.
