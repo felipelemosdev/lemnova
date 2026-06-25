@@ -101,13 +101,14 @@
 
                 <section id="dashboardSection" class="content-section active-section">
 
-    <!--* Topo IMPRESSÃO *
+<!-- Topo IMPRESSÃO -->
+
     <div class="dash-topbar">
         <button class="btn btn-ghost btn-print" type="button"
             onclick="printSection('dashboardSection', 'Dashboard')">
-            🖨 Imprimir Dashboard
+            🖨 Imprimir
         </button>
-    </div> -->
+    </div>
 
     <!-- Indicadores -->
     <div class="dashboard-summary-grid">
@@ -383,19 +384,33 @@
                                     <option value="">Selecione</option>
                                     <option value="Cível">Cível</option>
                                     <option value="Trabalhista">Trabalhista</option>
-                                    <option value="Família">Família</option>
-                                    <option value="Empresarial">Empresarial</option>
-                                    <option value="Tributário">Tributário</option>
+                                                                                                    
                                     <option value="Previdenciário">Previdenciário</option>
                                 </select>
+                            </label>
+                            <label class="field">
+                                <span>Tipo de Benefício</span>
+
+                                <select id="clientBenefit">
+                                    <option value="">Selecione</option>
+                                    <option value="BPC Idoso">BPC Idoso</option>
+                                    <option value="BPC Deficiente">BPC Deficiente</option>
+                                    <option value="Salário-Maternidade">Salário-Maternidade</option>
+                                    <option value="Auxílio-Doença">Auxílio-Doença</option>
+                                    <option value="Acidente de Trabalho">Acidente de Trabalho</option>
+                                    <option value="Aposentadoria">Aposentadoria</option>
+                                    </select>
                             </label>
 
                             <label class="field">
                                 <span>Status</span>
                                 <select id="clientStatus" required>
                                     <option value="Ativo">Ativo</option>
+                                    <option value="Ativo">Aguardando</option>
                                     <option value="Em análise">Em análise</option>
+                                    <option value="Ativo">Recusado</option>
                                     <option value="Arquivado">Arquivado</option>
+
                                 </select>
                             </label>
 
