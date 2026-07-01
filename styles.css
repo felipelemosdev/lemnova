@@ -574,6 +574,48 @@ textarea:focus {
     margin-bottom: 14px;
 }
 
+.cnj-lookup {
+    padding: 14px;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius);
+    background: rgba(212, 175, 55, 0.06);
+}
+
+.cnj-lookup-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.cnj-lookup-row select {
+    flex: 1 1 240px;
+}
+
+.cnj-lookup-row .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.cnj-status {
+    margin: 10px 0 0;
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--color-muted);
+    min-height: 1.2em;
+}
+
+.cnj-status.is-loading {
+    color: var(--color-navy);
+}
+
+.cnj-status.is-success {
+    color: var(--color-success);
+}
+
+.cnj-status.is-error {
+    color: var(--color-danger);
+}
+
 .table-wrap {
     width: 100%;
     overflow-x: auto;

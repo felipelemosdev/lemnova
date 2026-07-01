@@ -1250,14 +1250,20 @@ function renderSummary() {
     const todayEvents = appState.events.filter((eventItem) => eventItem.date === today);
     const nextEvent = getSortedEvents().find((eventItem) => eventItem.date >= today);
 
-    elements.calendarToday.textContent = `Hoje: ${formatDate(today)}`;
-    elements.calendarNextEvent.textContent = nextEvent
-        ? `${nextEvent.type} em ${formatDate(nextEvent.date)} às ${nextEvent.time}`
-        : "Nenhum evento cadastrado.";
+    if (elements.calendarToday) {
+        elements.calendarToday.textContent = `Hoje: ${formatDate(today)}`;
+    }
+    if (elements.calendarNextEvent) {
+        elements.calendarNextEvent.textContent = nextEvent
+            ? `${nextEvent.type} em ${formatDate(nextEvent.date)} às ${nextEvent.time}`
+            : "Nenhum evento cadastrado.";
+    }
     elements.eventCount.textContent = appState.events.length;
-    elements.eventAlertCount.textContent = todayEvents.length
-        ? `${todayEvents.length} alerta(s) para hoje.`
-        : "Nenhum alerta para hoje.";
+    if (elements.eventAlertCount) {
+        elements.eventAlertCount.textContent = todayEvents.length
+            ? `${todayEvents.length} alerta(s) para hoje.`
+            : "Nenhum alerta para hoje.";
+    }
 
     const totals = calculateFinanceTotals();
     elements.feesTotal.textContent = formatCurrency(totals.fees);
@@ -1272,9 +1278,11 @@ function renderDashboardTasks() {
     const openTasks = appState.tasks.filter((t) => !t.done);
 
     elements.taskOpenCount.textContent = openTasks.length;
-    elements.taskOpenText.textContent = openTasks.length
-        ? `${openTasks.length} tarefa(s) em aberto.`
-        : "Nenhuma tarefa em aberto.";
+    if (elements.taskOpenText) {
+        elements.taskOpenText.textContent = openTasks.length
+            ? `${openTasks.length} tarefa(s) em aberto.`
+            : "Nenhuma tarefa em aberto.";
+    }
 
     const overdue = appState.tasks.filter((t) => !t.done && t.dueDate && t.dueDate < today);
     const todayTasks = appState.tasks.filter((t) => !t.done && t.dueDate === today);
@@ -2122,6 +2130,139 @@ async function saveTaskReply() {
     renderTasks();
 }
 
+function buildPrintDocument(title, subtitle, bodyHtml) {
+    const generatedAt = new Date().toLocaleString("pt-BR");
+
+    return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+        <title>${escapeHTML(title)} — Jures One</title>
+        <style>
+            @page { margin: 18mm 14mm 22mm; }
+
+            * { box-sizing: border-box; }
+
+            body {
+                font-family: Arial, Helvetica, sans-serif;
+                color: #182033;
+                margin: 0;
+                padding: 0 30px 70px;
+            }
+
+            .print-header {
+                background: linear-gradient(120deg, #10203a 0%, #172b4d 100%);
+                color: #ffffff;
+                margin: 0 -30px 26px;
+                padding: 18px 30px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 4px solid #d4af37;
+            }
+
+            .print-header .brand {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .print-header .brand-mark {
+                width: 42px;
+                height: 42px;
+                border-radius: 50%;
+                background: #d4af37;
+                color: #10203a;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 900;
+                font-size: 1.05rem;
+                letter-spacing: 0.02em;
+                flex-shrink: 0;
+            }
+
+            .print-header .brand-text strong {
+                display: block;
+                font-size: 1.05rem;
+                letter-spacing: 0.05em;
+            }
+
+            .print-header .brand-text span {
+                display: block;
+                font-size: 0.68rem;
+                color: #d4af37;
+                letter-spacing: 0.09em;
+                text-transform: uppercase;
+                margin-top: 2px;
+            }
+
+            .print-header .doc-meta {
+                text-align: right;
+                font-size: 0.75rem;
+                color: #cbd5e1;
+                line-height: 1.5;
+            }
+
+            .print-title { margin: 0 0 4px; font-size: 1.4rem; color: #10203a; }
+            .print-subtitle { margin: 0 0 22px; color: #667085; font-size: 0.85rem; }
+
+            .print-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: #ffffff;
+                border-top: 1px solid #ddd;
+                padding: 10px 30px;
+                font-size: 0.72rem;
+                color: #667085;
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+            }
+
+            table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+            th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+            th { background: #f0f0f5; font-weight: 700; }
+            .dash-topbar, .btn-print, .modal-overlay, .event-actions, .action-button, .btn { display: none !important; }
+            .workspace-panel, .summary-card { border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
+            .compact-item { padding: 8px 0; border-bottom: 1px solid #eee; }
+            .task-column-header { padding: 6px 10px; border-radius: 4px; font-size: 0.82rem; font-weight: 700; margin-bottom: 6px; }
+            .task-col-overdue { background: rgba(180,35,24,.1); color: #b42318; }
+            .task-col-today { background: rgba(245,158,11,.13); color: #b54708; }
+            .task-col-upcoming { background: rgba(2,122,72,.1); color: #027a48; }
+            .task-col-done { background: rgba(71,84,103,.1); color: #475467; }
+            .task-dash-card { padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 6px; }
+            .eyebrow { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #d4af37; margin: 0 0 4px; }
+            .section-heading { margin-bottom: 14px; }
+            .type-pill, .status-pill, .task-pill, .document-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.78rem; }
+        </style>
+        </head><body>
+        <div class="print-header">
+            <div class="brand">
+                <div class="brand-mark">JO</div>
+                <div class="brand-text">
+                    <strong>JURES ONE</strong>
+                    <span>CRM Jurídico</span>
+                </div>
+            </div>
+            <div class="doc-meta">
+                <div>${escapeHTML(title)}</div>
+                <div>Gerado em ${generatedAt}</div>
+            </div>
+        </div>
+
+        <h1 class="print-title">${escapeHTML(title)}</h1>
+        ${subtitle ? `<p class="print-subtitle">${subtitle}</p>` : ""}
+
+        ${bodyHtml}
+
+        <div class="print-footer">
+            <span>Jures One — CRM Jurídico</span>
+            <span>Documento de uso interno · Confidencial</span>
+            <span>Impresso em ${generatedAt}</span>
+        </div>
+        </body></html>`;
+}
+
 function printTaskReply() {
     const taskId = appState.activeReplyTaskId;
     const task = appState.tasks.find((t) => t.id === taskId);
@@ -2138,18 +2279,15 @@ function printTaskReply() {
         </div>
     `).join("");
 
-    const win = window.open("", "_blank");
-    win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-        <title>Tarefa: ${escapeHTML(task.title)}</title>
-        <style>body{font-family:Arial,sans-serif;padding:30px;color:#182033}h1{color:#10203a}h2{color:#667085;font-size:1rem;font-weight:600}hr{border:none;border-top:1px solid #ddd;margin:20px 0}</style>
-        </head><body>
-        <h1>${escapeHTML(task.title)}</h1>
-        <h2>Responsável original: ${escapeHTML(task.responsible || "—")} · Prazo: ${task.dueDate ? formatDate(task.dueDate) : "—"}</h2>
-        ${task.description ? `<p>${escapeHTML(task.description)}</p>` : ""}
-        <hr>
-        <h2>Respostas (${(task.replies || []).length})</h2>
+    const subtitle = `Responsável original: ${escapeHTML(task.responsible || "—")} · Prazo: ${task.dueDate ? formatDate(task.dueDate) : "—"}`;
+    const body = `
+        ${task.description ? `<p>${escapeHTML(task.description)}</p><hr style="border:none;border-top:1px solid #ddd;margin:20px 0">` : ""}
+        <h2 style="color:#667085;font-size:1rem;font-weight:600;margin-bottom:14px">Respostas (${(task.replies || []).length})</h2>
         ${replies || '<p style="color:#667085">Nenhuma resposta.</p>'}
-        </body></html>`);
+    `;
+
+    const win = window.open("", "_blank");
+    win.document.write(buildPrintDocument(task.title, subtitle, body));
     win.document.close();
     win.focus();
     win.print();
@@ -2160,32 +2298,7 @@ function printSection(sectionId, title) {
     if (!section) return;
 
     const win = window.open("", "_blank");
-    win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-        <title>${title} — Jures One</title>
-        <style>
-            body{font-family:Arial,sans-serif;padding:30px;color:#182033}
-            h1{color:#10203a;margin-bottom:6px}
-            .dash-topbar,.btn-print,.modal-overlay,.event-actions,.action-button,.btn{display:none!important}
-            table{width:100%;border-collapse:collapse;font-size:0.9rem}
-            th,td{border:1px solid #ddd;padding:8px 10px;text-align:left}
-            th{background:#f0f0f5;font-weight:700}
-            .workspace-panel,.summary-card{border:1px solid #ddd;border-radius:6px;padding:16px;margin-bottom:16px}
-            .compact-item{padding:8px 0;border-bottom:1px solid #eee}
-            .task-column-header{padding:6px 10px;border-radius:4px;font-size:0.82rem;font-weight:700;margin-bottom:6px}
-            .task-col-overdue{background:rgba(180,35,24,.1);color:#b42318}
-            .task-col-today{background:rgba(245,158,11,.13);color:#b54708}
-            .task-col-upcoming{background:rgba(2,122,72,.1);color:#027a48}
-            .task-col-done{background:rgba(71,84,103,.1);color:#475467}
-            .task-dash-card{padding:8px 10px;border:1px solid #ddd;border-radius:4px;margin-bottom:6px}
-            .eyebrow{font-size:0.75rem;font-weight:800;text-transform:uppercase;color:#d4af37;margin:0 0 4px}
-            .section-heading{margin-bottom:14px}
-            .type-pill,.status-pill,.task-pill,.document-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:0.78rem}
-        </style>
-        </head><body>
-        <h1>${title} — Jures One</h1>
-        <p style="color:#667085;font-size:0.85rem;margin-bottom:20px">Impresso em ${new Date().toLocaleString("pt-BR")}</p>
-        ${section.innerHTML}
-        </body></html>`);
+    win.document.write(buildPrintDocument(title, "", section.innerHTML));
     win.document.close();
     win.focus();
     win.print();
@@ -2199,3 +2312,300 @@ function escapeHTML(value) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
+
+// ============================================================================
+// Integração com a API Pública do CNJ (DataJud) - busca de processos
+// ============================================================================
+/**
+ * Integração com a API Pública do DataJud (CNJ)
+ * -----------------------------------------------
+ * Preenche automaticamente Classe processual, Tribunal/Vara e Movimentação
+ * a partir do Número CNJ digitado no formulário "Novo processo".
+ *
+ * Documentação oficial: https://datajud-wiki.cnj.jus.br/api-publica/
+ *
+ * IMPORTANTE:
+ * 1) A "Chave Pública" abaixo é divulgada oficialmente pelo CNJ na Wiki do
+ *    DataJud e pode ser trocada por eles a qualquer momento. Se a busca
+ *    parar de funcionar, confira a chave atual em:
+ *    https://datajud-wiki.cnj.jus.br/api-publica/acesso/
+ * 2) A API do DataJud foi feita para consumo servidor-a-servidor. Como o
+ *    Jures One hoje é 100% front-end (sem backend), o navegador pode
+ *    bloquear a chamada por CORS. Se isso acontecer, o usuário verá um
+ *    aviso claro e poderá preencher os campos manualmente. O ideal, quando
+ *    o backend Node/Express do roadmap existir, é mover esta chamada para
+ *    lá e o front-end passa a chamar sua própria API.
+ * 3) Só encontra processos que já estão indexados no DataJud (nem todos os
+ *    tribunais/graus enviam 100% dos dados) e respeita o sigilo processual.
+ */
+
+(function () {
+    "use strict";
+
+    const DATAJUD_BASE_URL = "https://api-publica.datajud.cnj.jus.br";
+    const DATAJUD_API_KEY =
+        "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==";
+
+    // Ordem oficial dos códigos de UF usada pelo CNJ (Resolução CNJ 65/2008)
+    // [código de 2 dígitos, alias usado nas URLs do DataJud, sigla da UF]
+    const UF_ORDER = [
+        ["01", "ac", "AC"], ["02", "al", "AL"], ["03", "ap", "AP"], ["04", "am", "AM"],
+        ["05", "ba", "BA"], ["06", "ce", "CE"], ["07", "df", "DF"], ["08", "es", "ES"],
+        ["09", "go", "GO"], ["10", "ma", "MA"], ["11", "mt", "MT"], ["12", "ms", "MS"],
+        ["13", "mg", "MG"], ["14", "pa", "PA"], ["15", "pb", "PB"], ["16", "pr", "PR"],
+        ["17", "pe", "PE"], ["18", "pi", "PI"], ["19", "rj", "RJ"], ["20", "rn", "RN"],
+        ["21", "rs", "RS"], ["22", "ro", "RO"], ["23", "rr", "RR"], ["24", "sc", "SC"],
+        ["25", "se", "SE"], ["26", "sp", "SP"], ["27", "to", "TO"]
+    ];
+
+    function buildTribunalOptions() {
+        const options = [];
+
+        options.push({ alias: "stj", label: "STJ - Superior Tribunal de Justiça" });
+
+        for (let n = 1; n <= 6; n++) {
+            options.push({ alias: "trf" + n, label: "TRF" + n + " - Tribunal Regional Federal" });
+        }
+
+        for (let n = 1; n <= 24; n++) {
+            options.push({ alias: "trt" + n, label: "TRT" + n + " - Tribunal Regional do Trabalho" });
+        }
+
+        UF_ORDER.forEach(([, uf, sigla]) => {
+            const alias = uf === "df" ? "tjdft" : "tj" + uf;
+            options.push({ alias, label: "TJ" + sigla + " - Tribunal de Justiça" });
+        });
+
+        UF_ORDER.forEach(([, uf, sigla]) => {
+            options.push({ alias: "tre-" + uf, label: "TRE" + sigla + " - Tribunal Regional Eleitoral" });
+        });
+
+        [["sp", "SP"], ["mg", "MG"], ["rs", "RS"]].forEach(([uf, sigla]) => {
+            options.push({ alias: "tjm-" + uf, label: "TJM" + sigla + " - Tribunal de Justiça Militar" });
+        });
+
+        return options;
+    }
+
+    function populateTribunalSelect(select) {
+        buildTribunalOptions().forEach(({ alias, label }) => {
+            const opt = document.createElement("option");
+            opt.value = alias;
+            opt.textContent = label;
+            select.appendChild(opt);
+        });
+    }
+
+    function parseNumeroCnj(rawValue) {
+        const digits = (rawValue || "").replace(/\D/g, "");
+        if (digits.length !== 20) return null;
+
+        return {
+            digits,
+            sequencial: digits.slice(0, 7),
+            digitoVerificador: digits.slice(7, 9),
+            ano: digits.slice(9, 13),
+            segmento: digits.slice(13, 14),
+            tribunal: digits.slice(14, 16),
+            orgao: digits.slice(16, 20)
+        };
+    }
+
+    function detectarAlias(parsed) {
+        if (!parsed) return null;
+        const { segmento, tribunal } = parsed;
+
+        if (segmento === "3") return "stj";
+
+        if (segmento === "4") {
+            const n = parseInt(tribunal, 10);
+            if (n >= 1 && n <= 6) return "trf" + n;
+            return null;
+        }
+
+        if (segmento === "5") {
+            const n = parseInt(tribunal, 10);
+            if (n >= 1 && n <= 24) return "trt" + n;
+            return null;
+        }
+
+        if (segmento === "6") {
+            const match = UF_ORDER.find(([codigo]) => codigo === tribunal);
+            return match ? "tre-" + match[1] : null;
+        }
+
+        if (segmento === "8") {
+            const match = UF_ORDER.find(([codigo]) => codigo === tribunal);
+            if (!match) return null;
+            return match[1] === "df" ? "tjdft" : "tj" + match[1];
+        }
+
+        if (segmento === "9") {
+            const mapa = { "13": "tjm-mg", "21": "tjm-rs", "26": "tjm-sp" };
+            return mapa[tribunal] || null;
+        }
+
+        // Segmentos 1 (STF), 2 (CNJ) e 7 (STM) não têm índice na API pública.
+        return null;
+    }
+
+    function listarMovimentacoes(source) {
+        const lista = Array.isArray(source.movimentos) ? source.movimentos : [];
+        if (!lista.length) return null;
+
+        const ordenada = [...lista].sort((a, b) => {
+            const da = new Date(a.dataHora || 0).getTime();
+            const db = new Date(b.dataHora || 0).getTime();
+            return db - da; // mais recente primeiro
+        });
+
+        return ordenada
+            .map((mov) => {
+                const nome = mov?.nome || "Movimentação sem descrição";
+                const data = mov?.dataHora
+                    ? new Date(mov.dataHora).toLocaleDateString("pt-BR")
+                    : "data não informada";
+                return `${data} - ${nome}`;
+            })
+            .join("\n");
+    }
+
+    function setStatus(el, message, kind) {
+        el.textContent = message;
+        el.classList.remove("is-loading", "is-error", "is-success");
+        if (kind) el.classList.add(kind);
+    }
+
+    async function buscarProcesso() {
+        const numeroInput = document.getElementById("documentTitle");
+        const tribunalSelect = document.getElementById("cnjTribunal");
+        const status = document.getElementById("cnjSearchStatus");
+        const button = document.getElementById("cnjSearchBtn");
+
+        const parsed = parseNumeroCnj(numeroInput.value);
+        if (!parsed) {
+            setStatus(
+                status,
+                "Número CNJ incompleto. Digite os 20 dígitos no formato 0000000-00.0000.0.00.0000.",
+                "is-error"
+            );
+            return;
+        }
+
+        const alias = tribunalSelect.value || detectarAlias(parsed);
+        if (!alias) {
+            setStatus(
+                status,
+                "Não foi possível identificar o tribunal automaticamente. Selecione manualmente na lista ao lado.",
+                "is-error"
+            );
+            return;
+        }
+
+        if (!tribunalSelect.value) {
+            tribunalSelect.value = alias;
+        }
+
+        button.disabled = true;
+        button.textContent = "Consultando...";
+        setStatus(status, "Consultando a base pública do CNJ (DataJud)...", "is-loading");
+
+        try {
+            const response = await fetch(`${DATAJUD_BASE_URL}/api_publica_${alias}/_search`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `APIKey ${DATAJUD_API_KEY}`
+                },
+                body: JSON.stringify({
+                    query: { match: { numeroProcesso: parsed.digits } }
+                })
+            });
+
+            if (!response.ok) {
+                setStatus(
+                    status,
+                    `O CNJ recusou a consulta (HTTP ${response.status}). Verifique o tribunal selecionado ou tente novamente mais tarde.`,
+                    "is-error"
+                );
+                return;
+            }
+
+            const data = await response.json();
+            const hit = data?.hits?.hits?.[0];
+
+            if (!hit) {
+                setStatus(
+                    status,
+                    "Nenhum processo encontrado com este número neste tribunal. Confirme o número ou selecione outro tribunal.",
+                    "is-error"
+                );
+                return;
+            }
+
+            const source = hit._source || {};
+            const classeNome = source.classe?.nome;
+            const orgaoNome = source.orgaoJulgador?.nome;
+            const tribunalNome = source.tribunal || alias.toUpperCase();
+            const movimentos = Array.isArray(source.movimentos) ? source.movimentos : [];
+            const movimentacoes = listarMovimentacoes(source);
+
+            const classInput = document.getElementById("processClass");
+            const courtInput = document.getElementById("processCourt");
+            const movementInput = document.getElementById("processMovement");
+
+            if (classInput && classeNome) classInput.value = classeNome;
+            if (courtInput) {
+                courtInput.value = orgaoNome ? `${tribunalNome} - ${orgaoNome}` : tribunalNome;
+            }
+            if (movementInput && movimentacoes) movementInput.value = movimentacoes;
+
+            if (!movimentos.length) {
+                setStatus(
+                    status,
+                    "Processo encontrado, mas este tribunal não enviou o histórico de movimentações para o DataJud (apenas dados cadastrais). Classe e Tribunal/Vara foram preenchidos.",
+                    "is-success"
+                );
+            } else {
+                setStatus(
+                    status,
+                    `Processo encontrado! ${movimentos.length} movimentação(ões) trazida(s) do DataJud (pode não ser o andamento 100% completo — depende do que o tribunal enviou).`,
+                    "is-success"
+                );
+            }
+        } catch (error) {
+            console.error("Erro ao consultar a API pública do CNJ (DataJud):", error);
+            setStatus(
+                status,
+                "Não foi possível concluir a consulta pelo navegador (provável bloqueio de CORS, pois esta API foi feita para uso via backend). Preencha os campos manualmente por enquanto.",
+                "is-error"
+            );
+        } finally {
+            button.disabled = false;
+            button.textContent = "🔎 Buscar processo";
+        }
+    }
+
+    function init() {
+        const tribunalSelect = document.getElementById("cnjTribunal");
+        const button = document.getElementById("cnjSearchBtn");
+        const numeroInput = document.getElementById("documentTitle");
+
+        if (!tribunalSelect || !button || !numeroInput) return;
+
+        populateTribunalSelect(tribunalSelect);
+        button.addEventListener("click", buscarProcesso);
+
+        numeroInput.addEventListener("input", () => {
+            const parsed = parseNumeroCnj(numeroInput.value);
+            const alias = detectarAlias(parsed);
+            if (alias) tribunalSelect.value = alias;
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+    } else {
+        init();
+    }
+})();

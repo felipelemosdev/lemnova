@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jures One | CRM Jurídico V 0.15.7</title>
+    <title>Jures One | CRM Jurídico V 0.15.37</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -433,6 +433,7 @@
                                     <p class="eyebrow">Clientes já cadastrados</p>
                                     <h3>Lista de clientes</h3>
                                 </div>
+                                <button class="btn btn-ghost btn-print" type="button" onclick="printSection('registeredClientsPanel', 'Clientes')">🖨 Imprimir</button>
                             </div>
 
                             <label class="search-field">
@@ -460,6 +461,17 @@
                                 <span>Número CNJ</span>
                                 <input id="documentTitle" type="text" placeholder="0000000-00.0000.0.00.0000" required>
                             </label>
+
+                            <div class="field full-width cnj-lookup">
+                                <span>Consulta automática no CNJ (DataJud)</span>
+                                <div class="cnj-lookup-row">
+                                    <select id="cnjTribunal" title="Tribunal identificado a partir do número CNJ">
+                                        <option value="">Tribunal (detectado automaticamente)</option>
+                                    </select>
+                                    <button type="button" id="cnjSearchBtn" class="btn btn-ghost">🔎 Buscar processo</button>
+                                </div>
+                                <p id="cnjSearchStatus" class="cnj-status"></p>
+                            </div>
 
                             <label class="field">
                                 <span>Cliente relacionado</span>
@@ -504,12 +516,13 @@
                             <button class="btn btn-primary full-width" type="submit">Adicionar processo</button>
                         </form>
 
-                        <section class="workspace-panel">
+                        <section id="documentListPanel" class="workspace-panel">
                             <div class="section-heading">
                                 <div>
                                     <p class="eyebrow">Processos judiciais</p>
                                     <h3>Listagem</h3>
                                 </div>
+                                <button class="btn btn-ghost btn-print" type="button" onclick="printSection('documentListPanel', 'Processos')">🖨 Imprimir</button>
                             </div>
                             <div id="documentList" class="document-list"></div>
                             <p id="documentEmptyState" class="empty-state">Nenhum processo judicial cadastrado.</p>
@@ -850,8 +863,9 @@
     </section>
     <footer class="footer">
     <span>Jures One © 2026 • BETA</span>
-    <span class="footer-right">Versão 0.15.7 • Sistema interno</span>
+    <span class="footer-right">Versão 0.15.37 • Sistema interno</span>
 </footer>
     <script src="app.js"></script>
+    <script src="cnj-datajud.js"></script>
 </body>
 </html>
