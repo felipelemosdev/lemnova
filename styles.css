@@ -574,6 +574,31 @@ textarea:focus {
     margin-bottom: 14px;
 }
 
+.list-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.list-controls-search {
+    flex: 1 1 240px;
+    margin-bottom: 0;
+}
+
+.list-controls-sort {
+    flex: 0 1 220px;
+    margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+    .list-controls-search,
+    .list-controls-sort {
+        flex: 1 1 100%;
+    }
+}
+
 .cnj-lookup {
     padding: 14px;
     border: 1px dashed var(--color-border);

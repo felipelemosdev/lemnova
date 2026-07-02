@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jures One | CRM Jurídico V 0.15.37</title>
+    <title>Jures One | CRM Jurídico V 0.15.41</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -242,19 +242,19 @@
 
                 <article class="summary-card">
                     <span>Honorários</span>
-                    <strong id="feesTotal">R$ 0,00</strong>
+                    <strong id="dashFeesTotal">R$ 0,00</strong>
                     <p>Entradas</p>
                 </article>
 
                 <article class="summary-card">
                     <span>Custos</span>
-                    <strong id="costsTotal">R$ 0,00</strong>
+                    <strong id="dashCostsTotal">R$ 0,00</strong>
                     <p>Despesas</p>
                 </article>
 
                 <article class="summary-card">
                     <span>Saldo</span>
-                    <strong id="balanceTotal">R$ 0,00</strong>
+                    <strong id="dashBalanceTotal">R$ 0,00</strong>
                     <p>Resultado</p>
                 </article>
 
@@ -436,10 +436,23 @@
                                 <button class="btn btn-ghost btn-print" type="button" onclick="printSection('registeredClientsPanel', 'Clientes')">🖨 Imprimir</button>
                             </div>
 
-                            <label class="search-field">
-                                <span class="sr-only">Pesquisar clientes</span>
-                                <input id="clientSearch" type="search" placeholder="Pesquisar por nome, CPF ou telefone">
-                            </label>
+                            <div class="list-controls">
+                                <label class="search-field list-controls-search">
+                                    <span class="sr-only">Pesquisar clientes</span>
+                                    <input id="clientSearch" type="search" placeholder="Pesquisar por nome, CPF ou telefone">
+                                </label>
+
+                                <label class="field list-controls-sort">
+                                    <span>Ordenar / imprimir por</span>
+                                    <select id="clientSortOrder">
+                                        <option value="name-asc">Nome (A → Z)</option>
+                                        <option value="name-desc">Nome (Z → A)</option>
+                                        <option value="recent">Mais recentes</option>
+                                        <option value="oldest">Mais antigos</option>
+                                        <option value="status">Status</option>
+                                    </select>
+                                </label>
+                            </div>
 
                             <div id="clientTableBody" class="client-profile-list"></div>
                             <p id="clientEmptyState" class="empty-state">Nenhum cliente encontrado.</p>
@@ -775,12 +788,13 @@
                             <button class="btn btn-primary full-width" type="submit">Adicionar tarefa</button>
                         </form>
 
-                        <section class="workspace-panel">
+                        <section id="taskListPanel" class="workspace-panel">
                             <div class="section-heading">
                                 <div>
                                     <p class="eyebrow">Gestão</p>
                                     <h3>Tarefas cadastradas</h3>
                                 </div>
+                                <button class="btn btn-ghost btn-print" type="button" onclick="printSection('taskListPanel', 'Tarefas')">🖨 Imprimir</button>
                             </div>
                             <div id="taskList" class="compact-list"></div>
                             <p class="empty-state hidden" id="taskEmptyState">Nenhuma tarefa cadastrada.</p>
@@ -863,7 +877,7 @@
     </section>
     <footer class="footer">
     <span>Jures One © 2026 • BETA</span>
-    <span class="footer-right">Versão 0.15.37 • Sistema interno</span>
+    <span class="footer-right">Versão 0.15.41 • Sistema interno</span>
 </footer>
     <script src="app.js"></script>
     <script src="cnj-datajud.js"></script>

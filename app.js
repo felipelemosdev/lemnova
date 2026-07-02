@@ -112,8 +112,14 @@ function cacheElements() {
     elements.showClientList = document.getElementById("showClientList");
     elements.registeredClientsPanel = document.getElementById("registeredClientsPanel");
     elements.clientSearch = document.getElementById("clientSearch");
+    elements.clientSortOrder = document.getElementById("clientSortOrder");
     elements.clientTableBody = document.getElementById("clientTableBody");
     elements.clientEmptyState = document.getElementById("clientEmptyState");
+    elements.dashClientCount = document.getElementById("dashClientCount");
+    elements.dashProcessCount = document.getElementById("dashProcessCount");
+    elements.dashFeesTotal = document.getElementById("dashFeesTotal");
+    elements.dashCostsTotal = document.getElementById("dashCostsTotal");
+    elements.dashBalanceTotal = document.getElementById("dashBalanceTotal");
     elements.eventForm = document.getElementById("eventForm");
     elements.eventType = document.getElementById("eventType");
     elements.eventDate = document.getElementById("eventDate");
@@ -205,6 +211,7 @@ function bindEvents() {
         elements.clientState.value = elements.clientState.value.toUpperCase();
     });
     elements.clientSearch.addEventListener("input", renderClients);
+    elements.clientSortOrder.addEventListener("change", renderClients);
     elements.clientTableBody.addEventListener("click", handleClientTableClick);
     elements.dashAddEventButton.addEventListener("click", () => {
         resetEventForm();
@@ -1265,10 +1272,27 @@ function renderSummary() {
             : "Nenhum alerta para hoje.";
     }
 
+    if (elements.dashClientCount) {
+        elements.dashClientCount.textContent = appState.clients.length;
+    }
+    if (elements.dashProcessCount) {
+        elements.dashProcessCount.textContent = appState.documents.length;
+    }
+
     const totals = calculateFinanceTotals();
     elements.feesTotal.textContent = formatCurrency(totals.fees);
     elements.paymentsTotal.textContent = formatCurrency(totals.officeCosts);
     elements.receiptsTotal.textContent = formatCurrency(totals.balance);
+
+    if (elements.dashFeesTotal) {
+        elements.dashFeesTotal.textContent = formatCurrency(totals.fees);
+    }
+    if (elements.dashCostsTotal) {
+        elements.dashCostsTotal.textContent = formatCurrency(totals.officeCosts);
+    }
+    if (elements.dashBalanceTotal) {
+        elements.dashBalanceTotal.textContent = formatCurrency(totals.balance);
+    }
 
     renderDashboardTasks();
 }
@@ -1348,12 +1372,38 @@ function renderDashboardEvents() {
     });
 }
 
+function sortClients(clients, order) {
+    const sorted = [...clients];
+    const byName = (a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base" });
+
+    switch (order) {
+        case "name-desc":
+            return sorted.sort((a, b) => byName(b, a));
+        case "recent":
+            return sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        case "oldest":
+            return sorted.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+        case "status":
+            return sorted.sort((a, b) => {
+                const statusCompare = (a.status || "").localeCompare(b.status || "", "pt-BR", { sensitivity: "base" });
+                return statusCompare !== 0 ? statusCompare : byName(a, b);
+            });
+        case "name-asc":
+        default:
+            return sorted.sort(byName);
+    }
+}
+
 function renderClients() {
     const searchTerm = elements.clientSearch.value.trim().toLowerCase();
-    const filteredClients = appState.clients.filter((client) => {
-        const content = `${client.name} ${client.document} ${client.phone}`.toLowerCase();
-        return content.includes(searchTerm);
-    });
+    const sortOrder = elements.clientSortOrder ? elements.clientSortOrder.value : "name-asc";
+    const filteredClients = sortClients(
+        appState.clients.filter((client) => {
+            const content = `${client.name} ${client.document} ${client.phone}`.toLowerCase();
+            return content.includes(searchTerm);
+        }),
+        sortOrder
+    );
 
     elements.clientTableBody.innerHTML = "";
     elements.clientEmptyState.classList.toggle("hidden", filteredClients.length > 0);
@@ -2136,37 +2186,70 @@ function buildPrintDocument(title, subtitle, bodyHtml) {
     return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
         <title>${escapeHTML(title)} — Jures One</title>
         <style>
-            @page { margin: 18mm 14mm 22mm; }
+            @page { margin: 16mm 14mm 20mm; }
 
             * { box-sizing: border-box; }
 
+            html {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                color-adjust: exact;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
             body {
-                font-family: Arial, Helvetica, sans-serif;
-                color: #182033;
+                font-family: Georgia, "Times New Roman", serif;
+                color: #1c2333;
                 margin: 0;
-                padding: 0 30px 70px;
+                padding: 0 26px 60px;
+                font-size: 0.86rem;
+                line-height: 1.35;
+                position: relative;
+            }
+
+            .watermark {
+                position: fixed;
+                top: 46%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(-28deg);
+                font-family: Georgia, serif;
+                font-size: 4.4rem;
+                font-weight: 700;
+                color: rgba(16, 32, 58, 0.045);
+                letter-spacing: 0.12em;
+                white-space: nowrap;
+                z-index: -1;
+                pointer-events: none;
             }
 
             .print-header {
-                background: linear-gradient(120deg, #10203a 0%, #172b4d 100%);
+                background: #10203a;
                 color: #ffffff;
-                margin: 0 -30px 26px;
-                padding: 18px 30px;
+                margin: 0 -26px 0;
+                padding: 8px 26px;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                border-bottom: 4px solid #d4af37;
             }
+
+            .letterhead-rule { margin: 0 -26px 16px; }
+            .letterhead-rule .thick { height: 2px; background: #10203a; }
+            .letterhead-rule .thin { height: 1px; background: #d4af37; margin-top: 2px; }
 
             .print-header .brand {
                 display: flex;
                 align-items: center;
-                gap: 12px;
+                gap: 9px;
             }
 
             .print-header .brand-mark {
-                width: 42px;
-                height: 42px;
+                width: 26px;
+                height: 26px;
                 border-radius: 50%;
                 background: #d4af37;
                 color: #10203a;
@@ -2174,68 +2257,118 @@ function buildPrintDocument(title, subtitle, bodyHtml) {
                 align-items: center;
                 justify-content: center;
                 font-weight: 900;
-                font-size: 1.05rem;
+                font-size: 0.78rem;
                 letter-spacing: 0.02em;
                 flex-shrink: 0;
+                font-family: Georgia, serif;
             }
 
             .print-header .brand-text strong {
                 display: block;
-                font-size: 1.05rem;
-                letter-spacing: 0.05em;
+                font-size: 0.82rem;
+                letter-spacing: 0.06em;
             }
 
             .print-header .brand-text span {
                 display: block;
-                font-size: 0.68rem;
+                font-size: 0.56rem;
                 color: #d4af37;
-                letter-spacing: 0.09em;
+                letter-spacing: 0.1em;
                 text-transform: uppercase;
-                margin-top: 2px;
+                margin-top: 1px;
             }
 
             .print-header .doc-meta {
                 text-align: right;
-                font-size: 0.75rem;
+                font-size: 0.62rem;
                 color: #cbd5e1;
-                line-height: 1.5;
+                line-height: 1.4;
             }
 
-            .print-title { margin: 0 0 4px; font-size: 1.4rem; color: #10203a; }
-            .print-subtitle { margin: 0 0 22px; color: #667085; font-size: 0.85rem; }
+            .print-title { margin: 0 0 2px; font-size: 1.18rem; color: #10203a; letter-spacing: 0.01em; }
+            .print-subtitle { margin: 0 0 16px; color: #667085; font-size: 0.76rem; font-style: italic; }
 
             .print-footer {
                 position: fixed;
                 bottom: 0;
                 left: 0;
                 right: 0;
-                background: #ffffff;
-                border-top: 1px solid #ddd;
-                padding: 10px 30px;
-                font-size: 0.72rem;
-                color: #667085;
+                background: #10203a;
+                color: #ffffff;
+                border-top: 1px solid #d4af37;
+                padding: 7px 26px;
+                font-size: 0.68rem;
                 display: flex;
                 justify-content: space-between;
+                align-items: center;
                 gap: 12px;
+                font-family: Arial, Helvetica, sans-serif;
             }
 
-            table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-            th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
-            th { background: #f0f0f5; font-weight: 700; }
-            .dash-topbar, .btn-print, .modal-overlay, .event-actions, .action-button, .btn { display: none !important; }
-            .workspace-panel, .summary-card { border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
-            .compact-item { padding: 8px 0; border-bottom: 1px solid #eee; }
-            .task-column-header { padding: 6px 10px; border-radius: 4px; font-size: 0.82rem; font-weight: 700; margin-bottom: 6px; }
+            .print-footer .footer-right { color: #cbd5e1; }
+
+            table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+            th, td { border: 1px solid #d8dce6; padding: 4px 7px; text-align: left; }
+            th { background: #f0f1f5; font-weight: 700; }
+
+            .dash-topbar, .btn-print, .modal-overlay, .event-actions, .action-button, .btn, .list-controls, .search-field { display: none !important; }
+
+            h1, h2, h3 { font-family: Georgia, serif; }
+
+            .workspace-panel, .summary-card {
+                border: 1px solid #dfe4ee !important;
+                border-radius: 3px !important;
+                box-shadow: none !important;
+                padding: 8px 10px !important;
+                margin-bottom: 8px !important;
+                min-height: 0 !important;
+            }
+
+            .section-heading { margin-bottom: 6px !important; gap: 6px; }
+            .section-heading h3 { font-size: 0.92rem !important; margin: 0; }
+            .eyebrow { font-size: 0.6rem !important; font-weight: 700; letter-spacing: 0.07em; color: #ad8820 !important; margin: 0 0 1px !important; }
+
+            .dashboard-summary-grid { display: flex !important; border: 1px solid #dfe4ee; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+            .dashboard-summary-grid .summary-card {
+                flex: 1; text-align: center; border: none !important; border-right: 1px solid #eceff4 !important;
+                border-radius: 0 !important; padding: 6px 4px !important;
+            }
+            .dashboard-summary-grid .summary-card:last-child { border-right: none !important; }
+
+            .finance-overview { display: flex !important; border: 1px solid #dfe4ee; border-radius: 3px; overflow: hidden; margin-bottom: 8px; gap: 0 !important; }
+            .finance-overview .summary-card {
+                flex: 1; text-align: center; border: none !important; border-right: 1px solid #eceff4 !important;
+                border-radius: 0 !important; padding: 6px 4px !important;
+            }
+            .finance-overview .summary-card:last-child { border-right: none !important; }
+
+            .summary-card span { font-size: 0.6rem !important; letter-spacing: 0.03em; }
+            .summary-card strong { font-size: 0.98rem !important; margin: 2px 0 1px !important; display: block; }
+            .summary-card p { font-size: 0.58rem !important; margin: 0 !important; }
+
+            .dashboard-2x2-grid, .dashboard-task-cards { gap: 8px !important; margin-top: 8px !important; }
+
+            .task-col-mini { padding: 0 !important; }
+            .task-column-header { padding: 3px 6px !important; border-radius: 3px !important; font-size: 0.68rem !important; font-weight: 700; margin-bottom: 3px !important; }
+            .task-column-list { min-height: 0 !important; }
             .task-col-overdue { background: rgba(180,35,24,.1); color: #b42318; }
             .task-col-today { background: rgba(245,158,11,.13); color: #b54708; }
             .task-col-upcoming { background: rgba(2,122,72,.1); color: #027a48; }
             .task-col-done { background: rgba(71,84,103,.1); color: #475467; }
-            .task-dash-card { padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 6px; }
-            .eyebrow { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #d4af37; margin: 0 0 4px; }
-            .section-heading { margin-bottom: 14px; }
-            .type-pill, .status-pill, .task-pill, .document-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.78rem; }
+            .task-dash-card { padding: 4px 6px !important; border: 1px solid #dfe4ee; border-radius: 3px; margin-bottom: 3px !important; font-size: 0.72rem; }
+
+            .compact-list { gap: 0 !important; }
+            .compact-item { padding: 4px 0 !important; border-bottom: 1px solid #eee; font-size: 0.78rem; }
+            .empty-state { padding: 4px 0 !important; font-size: 0.74rem !important; color: #8a93a6; margin: 0 !important; }
+
+            .client-profile-card { padding: 6px 8px !important; margin-bottom: 5px !important; border: 1px solid #eceff4 !important; }
+            .client-detail-grid { gap: 4px 10px !important; }
+            .detail-item { padding: 2px 0 !important; font-size: 0.76rem !important; }
+
+            .type-pill, .status-pill, .task-pill, .document-badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 0.66rem; }
         </style>
         </head><body>
+        <div class="watermark">JURES ONE</div>
         <div class="print-header">
             <div class="brand">
                 <div class="brand-mark">JO</div>
@@ -2249,6 +2382,7 @@ function buildPrintDocument(title, subtitle, bodyHtml) {
                 <div>Gerado em ${generatedAt}</div>
             </div>
         </div>
+        <div class="letterhead-rule"><div class="thick"></div><div class="thin"></div></div>
 
         <h1 class="print-title">${escapeHTML(title)}</h1>
         ${subtitle ? `<p class="print-subtitle">${subtitle}</p>` : ""}
@@ -2256,9 +2390,8 @@ function buildPrintDocument(title, subtitle, bodyHtml) {
         ${bodyHtml}
 
         <div class="print-footer">
-            <span>Jures One — CRM Jurídico</span>
-            <span>Documento de uso interno · Confidencial</span>
-            <span>Impresso em ${generatedAt}</span>
+            <span>Jures One © 2026 • BETA</span>
+            <span class="footer-right">Versão 0.15.37 • Sistema interno</span>
         </div>
         </body></html>`;
 }
