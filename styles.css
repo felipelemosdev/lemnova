@@ -1,17 +1,28 @@
 :root {
-    --color-navy: #10203a;
-    --color-navy-2: #172b4d;
-    --color-gold: #d4af37;
-    --color-gold-dark: #ad8820;
+   
+    --color-navy: #000000;
+    --color-navy-2: #1a1a1a;
+
+    --color-gold: #ffffff;
+    --color-gold-dark: #cccccc;
+
+    /* Base */
     --color-white: #ffffff;
-    --color-surface: #f6f7fb;
-    --color-border: #dfe4ee;
-    --color-muted: #667085;
-    --color-text: #182033;
+    --color-surface: #f5f5f5;
+    --color-border: #e0e0e0;
+
+    /* Textos */
+    --color-muted: #737373;
+    --color-text: #111111;
+
+    /* Estados */
     --color-danger: #b42318;
     --color-success: #027a48;
-    --shadow-soft: 0 16px 40px rgba(16, 32, 58, 0.12);
-    --radius: 8px;
+
+    /* UI */
+    --shadow-soft: 0 16px 40px rgba(0,0,0,0.18);
+
+    --radius: 10px;
     --sidebar-width: 280px;
 }
 
@@ -24,7 +35,7 @@ body {
     margin: 0;
     color: var(--color-text);
     background: var(--color-surface);
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: "Aptos", "Aptos Display", "Segoe UI", Arial, sans-serif;
 }
 
 button,
@@ -62,7 +73,7 @@ button {
     grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 460px);
     min-height: 100vh;
     background:
-        linear-gradient(135deg, rgba(16, 32, 58, 0.96), rgba(23, 43, 77, 0.9)),
+        linear-gradient(135deg, rgba(0, 0, 0, 0.94), rgba(35, 35, 35, 0.88)),
         url("https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=1600&q=80") center/cover;
 }
 
