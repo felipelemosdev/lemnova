@@ -9,40 +9,44 @@
 <body>
     <div id="app" class="app-shell">
         <section id="loginView" class="login-view" aria-labelledby="loginTitle">
+            <!-- CAMADA 1: FUNDO GERAL DA CENA -->
+            <div class="login-scene-bg" aria-hidden="true"></div>
+
+            <!-- CAMADA 2: MULHER / ESTÁTUA (inferior esquerdo) -->
+            <div class="login-figure" aria-hidden="true"></div>
+
+            <h1 id="loginTitle" class="sr-only">Lemnova - CRM Jurídico - Acesse sua área</h1>
+
+            <!-- CAMADA 3: LOGO (superior esquerdo) -->
             <div class="login-brand">
-                <div class="brand-mark" aria-hidden="true">JO</div>
-                <div>
-                    <p class="eyebrow">lemnova - CRM jurídico</p>
-                    <title>Lemnova | Tecnologia Jurídica</title>
-                    <h1 id="loginTitle">Lenova</h1>
+                <img src="assets/images/login-logo.png" alt="Lemnova - Gestão Jurídica Inteligente" class="brand-logo-img">
+            </div>
+
+            <!-- CAMADA 4: CARD DE LOGIN (central) -->
+            <form id="loginForm" class="login-panel" autocomplete="on">
+                <label class="field">
+                    <span class="sr-only">Login de usuário</span>
+                    <input id="loginUser" type="text" placeholder="Username" autocomplete="username" required>
+                </label>
+
+                <label class="field">
+                    <span class="sr-only">Senha</span>
+                    <input id="loginPassword" type="password" placeholder="Password" minlength="4" required>
+                </label>
+
+                <a href="#" class="forgot-link">Forgot Password?</a>
+
+                <button class="btn btn-login" type="submit">Login</button>
+
+                <p id="loginMessage" class="form-message" role="status"></p>
+            </form>
+
+            <div class="login-meta">
+                <div class="clock-stack">
+                    <span class="date-chip date-display"></span>
+                    <span class="credit-chip">Feito por Felipe Lemos - 2026</span>
                 </div>
             </div>
-                        <!-- TELA INICIAL -->
-            <form id="loginForm" class="login-panel" autocomplete="on">
-                <div>
-                    <h2>Acesse sua área</h2>
-                    <p>Gestão de clientes, processos judiciais, agenda e financeiro em um único fluxo.</p>
-                </div>
-
-                <label class="field">
-                    <span>Login de usuário</span>
-                    <input id="loginUser" type="text" placeholder="usuario.escritorio" autocomplete="username" required>
-                </label>
-
-                <label class="field">
-                    <span>Senha</span>
-                    <input id="loginPassword" type="password" placeholder="Digite sua senha" minlength="4" required>
-                </label>
-
-                <button class="btn btn-primary" type="submit">Entrar</button>
-                <p id="loginMessage" class="form-message" role="status"></p>
-                <div class="login-meta">
-                    <div class="clock-stack">
-                        <span class="date-chip date-display"></span>
-                        <span class="credit-chip">Feito por Felipe Lemos - 2026</span>
-                    </div>
-                </div>
-            </form>
         </section>
 
         <section id="systemView" class="system-view hidden" aria-label="Sistema Jures One">

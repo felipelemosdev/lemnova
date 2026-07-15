@@ -8,7 +8,7 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
     const generatedAt = new Date().toLocaleString("pt-BR");
 
     return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-        <title>${escapeHTML(title)} — Jures One</title>
+        <title>${escapeHTML(title)} — Lemnova</title>
         <style>
             @page { margin: 16mm 14mm 20mm; }
 
@@ -192,12 +192,12 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
             .type-pill, .status-pill, .task-pill, .document-badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 0.66rem; }
         </style>
         </head><body>
-        <div class="watermark">JURES ONE</div>
+        <div class="watermark">LEMNOVA</div>
         <div class="print-header">
             <div class="brand">
-                <div class="brand-mark">JO</div>
+                <div class="brand-mark">LN</div>
                 <div class="brand-text">
-                    <strong>JURES ONE</strong>
+                    <strong>LEMNOVA</strong>
                     <span>CRM Jurídico</span>
                 </div>
             </div>
@@ -214,8 +214,8 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
         ${bodyHtml}
 
         <div class="print-footer">
-            <span>Jures One © 2026 • BETA</span>
-            <span class="footer-right">Versão 0.15.37 • Sistema interno</span>
+            <span>Lemnova © 2026 • BETA</span>
+            <span class="footer-right">Versão 0.1.50 • Sistema interno</span>
         </div>
         </body></html>`;
 }
