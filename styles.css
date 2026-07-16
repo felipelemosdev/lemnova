@@ -30,9 +30,15 @@
     box-sizing: border-box;
 }
 
+html {
+    height: 100%;
+}
+
 body {
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh; /* usa a altura "real" da viewport em celulares */
     margin: 0;
+    overflow-y: auto; /* rede de segurança: se algo passar de 100vh, dá pra rolar até o rodapé em vez dele sumir */
     color: var(--color-text);
     background: var(--color-surface);
     font-family: "Aptos", "Aptos Display", "Segoe UI", Arial, sans-serif;
@@ -65,7 +71,9 @@ button {
 }
 
 .app-shell {
-    min-height: 100vh;
+    height: 100%; /* travada: é isso que permite o rodapé ficar fixo embaixo e o conteúdo rolar por dentro */
+    display: flex;
+    flex-direction: column;
 }
 
 /* ============================================================
@@ -78,17 +86,22 @@ button {
    ============================================================ */
 
 .login-view {
-    min-height: 100vh;
-    height: 100vh;
+    flex: 1;
+    min-height: 0; /* essencial: permite que o flex item encolha em vez de estourar a tela */
     margin: 0;
-    padding: 40px;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
-    overflow: hidden;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
     background: #05070d; /* cor de fallback enquanto as imagens carregam */
+
 }
+
 
 /* ====================== 1) FUNDO DA CENA (colunas/ambiente) ======================
    Arquivo: assets/images/login-background.jpeg (cena completa, colunas + estátua da direita) */
@@ -96,22 +109,42 @@ button {
     position: absolute;
     inset: 0;
     z-index: 0;
-    background: url("assets/images/login-background.jpeg") center/cover no-repeat;
+    background: url("assets/images/fundotela.png") center bottom / cover no-repeat;
+    
 }
 
 /* ====================== 2) MULHER / ESTÁTUA (inferior esquerdo) ======================
-   Arquivo: assets/images/login-woman.png (fundo preto já removido, virou transparente).
+   Arquivo: assets/images/justitia.jpeg (fundo preto já removido, virou transparente).
    Troque a imagem, o tamanho (width/height) e a posição (left/bottom) aqui,
    sem afetar o fundo nem a logo. */
 .login-figure {
     position: absolute;
-    left: -2px;
+    left: 0;
     bottom: 0;
-    width: min(30vw, 320px);
-    height: 85vh;
+
+    width: 300px;
+    height: 650px;
+
     z-index: 1;
-    background: url("assets/images/login-woman.png") left bottom / contain no-repeat;
+
+    background-image: url("assets/images/justitia.png");
+    background-repeat: no-repeat;
+    background-position: left bottom;
+    background-size: contain;
+
     pointer-events: none;
+
+    animation: justiceGlow 4s ease-in-out infinite;
+}
+
+@keyframes justiceGlow {
+    0%, 100% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(1.15);
+    }
 }
 
 /* ====================== 3) LOGO (superior esquerdo) ======================
@@ -125,9 +158,9 @@ button {
 
 .brand-logo-img {
     display: block;
-    height: 54px;
+    height: 190px;
     width: auto;
-    filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.6));
+    
 }
 
 /* ====================== 4) CARD DE LOGIN (central) ====================== */
@@ -136,7 +169,7 @@ button {
     z-index: 2;
     width: 100%;
     max-width: 340px;
-    background: rgba(199, 133, 47, 0.349);
+    background: rgba(233, 186, 125, 0.349);
     border-radius: 28px;
     padding: 44px 34px;
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
@@ -340,27 +373,89 @@ textarea:focus {
 
 .system-view {
     display: flex;
-    min-height: 100vh;
+    flex: 1;
+    min-height: 0;
 }
 
 .sidebar {
-    position: sticky;
-    top: 0;
     display: flex;
     flex-direction: column;
     width: var(--sidebar-width);
-    height: 100vh;
+    flex-shrink: 0;
     padding: 24px;
     background: var(--color-navy);
     color: var(--color-white);
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: width 0.35s ease, padding 0.35s ease;
+}
+
+.sidebar.collapsed {
+    width: 84px;
+    padding: 24px 14px;
+}
+
+.sidebar.collapsed:hover {
+    width: var(--sidebar-width);
+    padding: 24px;
+}
+
+.sidebar.collapsed:hover .sidebar-brand-text,
+.sidebar.collapsed:hover .nav-label {
+    display: revert;
+}
+
+.sidebar.collapsed:hover .sidebar-brand {
+    justify-content: flex-start;
+}
+
+.sidebar.collapsed:hover .nav-link,
+.sidebar.collapsed:hover .sidebar-logout {
+    justify-content: flex-start;
+    padding: 0 12px;
+}
+
+.sidebar.collapsed .sidebar-brand-text,
+.sidebar.collapsed .nav-label {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-brand {
+    justify-content: center;
+}
+
+.sidebar.collapsed .nav-link,
+.sidebar.collapsed .sidebar-logout {
+    justify-content: center;
+    padding: 0;
 }
 
 .sidebar-brand {
+    width: 100%;
     display: flex;
     align-items: center;
     gap: 12px;
     padding-bottom: 24px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.brand-mark {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: rgba(212, 175, 55, 0.14);
+    color: var(--color-gold);
+    font-size: 1.35rem;
 }
 
 .sidebar-brand strong {
@@ -412,12 +507,17 @@ textarea:focus {
 .sidebar-logout {
     width: 100%;
     margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 
 .main-area {
     flex: 1;
     min-width: 0;
     padding: 28px;
+    overflow-y: auto; /* o conteúdo do dashboard rola aqui dentro, não a página toda */
 }
 
 .topbar {
@@ -479,9 +579,15 @@ textarea:focus {
 
 .dashboard-2x2-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-    margin-top: 18px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+    margin-top: 14px;
+}
+
+@media (max-width: 1300px) {
+    .dashboard-2x2-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .dashboard-summary {
@@ -502,25 +608,27 @@ textarea:focus {
 }
 
 .summary-card {
-    min-height: 105px;
-    padding: 10px 10px;
+    min-height: 78px;
+    padding: 10px 12px;
 }
 
 .summary-card span {
     color: var(--color-muted);
     font-weight: 800;
+    font-size: 0.78rem;
 }
 
 .summary-card strong {
     display: block;
-    margin: 8px 0 4px;
+    margin: 4px 0 2px;
     color: var(--color-navy);
-    font-size: clamp(1.35rem, 3vw, 1.75rem);
+    font-size: clamp(1.1rem, 2.2vw, 1.4rem);
 }
 
 .summary-card p {
     margin: 0;
     color: var(--color-muted);
+    font-size: 0.76rem;
 }
 
 .workspace-grid {
@@ -561,7 +669,7 @@ textarea:focus {
 
 .workspace-panel {
     min-width: 0;
-    padding: 20px;
+    padding: 16px;
 }
 
 .section-heading {
@@ -1384,9 +1492,15 @@ td {
    =========================== */
 .dashboard-summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 720px) {
+    .dashboard-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 .dash-topbar {
@@ -1415,8 +1529,8 @@ td {
     /* tarefa  Pedencia */ 
 .dashboard-task-cards {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
     margin-top: 5px;
 }
 
@@ -1424,8 +1538,8 @@ td {
     border: 1px solid var(--color-border);
     border-radius: 12px;
     background: var(--color-white);
-    padding: 14px;
-    min-height: 100px;
+    padding: 10px;
+    min-height: 76px;
 }
 
 .dashboard-task-cards .task-column-header {
@@ -1678,6 +1792,7 @@ td {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 
     padding: 10px 18px;
     font-size: 0.8rem;

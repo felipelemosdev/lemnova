@@ -20,6 +20,7 @@ export function cacheElements() {
     elements.confirmDeleteButton = document.getElementById("confirmDeleteButton");
     elements.mobileMenuButton = document.getElementById("mobileMenuButton");
     elements.sidebar = document.querySelector(".sidebar");
+    elements.sidebarToggle = document.getElementById("sidebarToggle");
     elements.navLinks = document.querySelectorAll(".nav-link");
     elements.pageTitle = document.getElementById("pageTitle");
     elements.dateDisplays = document.querySelectorAll(".date-display");
@@ -176,11 +177,30 @@ export function showSystem() {
     elements.loginView.classList.add("hidden");
     elements.systemView.classList.remove("hidden");
     setActiveView(appState.currentView);
+    scheduleSidebarAutoCollapse();
 }
 
 
 export function toggleMobileMenu() {
     elements.sidebar.classList.toggle("open");
+}
+
+
+let sidebarAutoCollapseTimer = null;
+
+export function toggleSidebarCollapse() {
+    if (!elements.sidebar) return;
+    window.clearTimeout(sidebarAutoCollapseTimer);
+    elements.sidebar.classList.toggle("collapsed");
+}
+
+
+export function scheduleSidebarAutoCollapse(delay = 5000) {
+    if (!elements.sidebar) return;
+    window.clearTimeout(sidebarAutoCollapseTimer);
+    sidebarAutoCollapseTimer = window.setTimeout(() => {
+        elements.sidebar.classList.add("collapsed");
+    }, delay);
 }
 
 

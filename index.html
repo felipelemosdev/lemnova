@@ -19,7 +19,7 @@
 
             <!-- CAMADA 3: LOGO (superior esquerdo) -->
             <div class="login-brand">
-                <img src="assets/images/login-logo.png" alt="Lemnova - Gestão Jurídica Inteligente" class="brand-logo-img">
+                <img src="assets/images/logonovo.png" alt="Lemnova - Gestão Jurídica Inteligente" class="brand-logo-img">
             </div>
 
             <!-- CAMADA 4: CARD DE LOGIN (central) -->
@@ -50,43 +50,46 @@
         </section>
 
         <section id="systemView" class="system-view hidden" aria-label="Sistema Jures One">
-            <aside class="sidebar">
-                <div class="sidebar-brand">
-                    <div class="brand-mark" aria-hidden="true">JO</div>
-                    <div>
+            <aside class="sidebar" id="sidebarEl">
+                <button class="sidebar-brand" id="sidebarToggle" type="button" title="Expandir/recolher menu">
+                    <div class="brand-mark" aria-hidden="true">⌂</div>
+                    <div class="sidebar-brand-text">
                         <strong>Lemnova</strong>
                         <span>CRM Jurídico</span>
                     </div>
-                </div>
+                </button>
 
                 <nav class="sidebar-nav" aria-label="Menu principal">
                     <button class="nav-link active" type="button" data-view="dashboard">
                         <span class="nav-icon" aria-hidden="true">▦</span>
-                        Dashboard
+                        <span class="nav-label">Dashboard</span>
                     </button>
                     <button class="nav-link" type="button" data-view="clients">
                         <span class="nav-icon" aria-hidden="true">◇</span>
-                        Clientes
+                        <span class="nav-label">Clientes</span>
                     </button>
                     <button class="nav-link" type="button" data-view="documents">
                         <span class="nav-icon" aria-hidden="true">§</span>
-                        Processos
+                        <span class="nav-label">Processos</span>
                     </button>
                     <button class="nav-link" type="button" data-view="finance">
                         <span class="nav-icon" aria-hidden="true">R$</span>
-                        Financeiro
+                        <span class="nav-label">Financeiro</span>
                     </button>
                     <button class="nav-link" type="button" data-view="agenda">
                         <span class="nav-icon" aria-hidden="true">◷</span>
-                        Agenda
+                        <span class="nav-label">Agenda</span>
                     </button>
                     <button class="nav-link" type="button" data-view="tasks">
                      <span class="nav-icon">✓</span>
-                     Tarefas
+                     <span class="nav-label">Tarefas</span>
                     </button>
                 </nav>
 
-                <button id="logoutButton" class="btn btn-secondary sidebar-logout" type="button">Sair</button>
+                <button id="logoutButton" class="btn btn-secondary sidebar-logout" type="button">
+                    <span class="nav-icon" aria-hidden="true">⏻</span>
+                    <span class="nav-label">Sair</span>
+                </button>
             </aside>
 
             <main class="main-area">
@@ -879,7 +882,7 @@
                 <div id="documentPreviewBody" class="preview-frame"></div>
             </div>
         </div>
-    </section>
+    </div>
     <footer class="footer">
     <span>Lemnova 2026 • BETA</span>
     <span class="footer-right">Versão 0.1.50 • Sistema interno</span>

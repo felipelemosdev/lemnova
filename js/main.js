@@ -13,6 +13,7 @@ import {
     showLogin,
     showSystem,
     toggleMobileMenu,
+    toggleSidebarCollapse,
     closeConfirmModal
 } from "./dom.js";
 import { createId, todayISO } from "./utils.js";
@@ -30,7 +31,8 @@ import {
     lookupCep,
     confirmClientDelete,
     renderClients,
-    renderClientSelects
+    renderClientSelects,
+    handlePhotoPreview
 } from "./clients.js";
 
 import {
@@ -96,6 +98,9 @@ function bindEvents() {
     elements.cancelDeleteButton.addEventListener("click", closeConfirmModal);
     elements.confirmDeleteButton.addEventListener("click", confirmClientDelete);
     elements.mobileMenuButton.addEventListener("click", toggleMobileMenu);
+    if (elements.sidebarToggle) {
+        elements.sidebarToggle.addEventListener("click", toggleSidebarCollapse);
+    }
     elements.clientForm.addEventListener("submit", handleClientSubmit);
     elements.cancelClientEdit.addEventListener("click", resetClientForm);
     elements.showClientRegister.addEventListener("click", () => showClientMode("register"));
