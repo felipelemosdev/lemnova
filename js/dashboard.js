@@ -89,6 +89,46 @@ export function updateDateTime() {
 }
 
 
+export function renderNotifications() {
+    if (!elements.notifList) return;
+
+    const today = todayISO();
+    const overdueTasks = appState.tasks.filter((t) => !t.done && t.dueDate && t.dueDate < today);
+    const todayEvents = appState.events.filter((eventItem) => eventItem.date === today);
+
+    const items = [
+        ...overdueTasks.map((task) => ({
+            kind: "overdue",
+            title: `Tarefa atrasada: ${task.title}`,
+            detail: `Prazo era ${formatDate(task.dueDate)}`
+        })),
+        ...todayEvents.map((eventItem) => ({
+            kind: "event",
+            title: eventItem.type,
+            detail: `Hoje às ${eventItem.time}`
+        }))
+    ];
+
+    const count = items.length;
+    if (elements.notifBadge) {
+        elements.notifBadge.textContent = count > 9 ? "9+" : String(count);
+        elements.notifBadge.classList.toggle("hidden", count === 0);
+    }
+
+    if (!items.length) {
+        elements.notifList.innerHTML = '<p class="empty-state">Nenhuma notificação por enquanto.</p>';
+        return;
+    }
+
+    elements.notifList.innerHTML = items.map((item) => `
+        <div class="notif-item ${item.kind === "overdue" ? "overdue" : ""}">
+            <strong>${escapeHTML(item.title)}</strong>
+            <span>${escapeHTML(item.detail)}</span>
+        </div>
+    `).join("");
+}
+
+
 export function renderSummary() {
     const today = todayISO();
     const todayEvents = appState.events.filter((eventItem) => eventItem.date === today);
@@ -132,6 +172,7 @@ export function renderSummary() {
     }
 
     renderDashboardTasks();
+    renderNotifications();
 }
 
 

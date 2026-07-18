@@ -141,6 +141,14 @@ export function cacheElements() {
     elements.replyPdfName = document.getElementById("replyPdfName");
     elements.taskReplyHistory = document.getElementById("taskReplyHistory");
     elements.dashCalendarWidget = document.getElementById("dashCalendarWidget");
+    elements.notifButton = document.getElementById("notifButton");
+    elements.notifPanel = document.getElementById("notifPanel");
+    elements.notifBadge = document.getElementById("notifBadge");
+    elements.notifList = document.getElementById("notifList");
+    elements.notifWrap = document.querySelector(".notif-wrap");
+    elements.emailButton = document.getElementById("emailButton");
+    elements.whatsappButton = document.getElementById("whatsappButton");
+    elements.topbarPrintButton = document.getElementById("topbarPrintButton");
 }
 
 
@@ -208,4 +216,26 @@ export function closeConfirmModal() {
     appState.pendingDeleteClientId = null;
     appState.pendingDeleteFinanceId = null;
     elements.confirmOverlay.classList.add("hidden");
+}
+
+
+export function toggleNotifPanel() {
+    if (!elements.notifPanel) return;
+    elements.notifPanel.classList.toggle("hidden");
+}
+
+
+export function closeNotifPanel() {
+    if (!elements.notifPanel) return;
+    elements.notifPanel.classList.add("hidden");
+}
+
+
+export function handleOutsideNotifClick(event) {
+    if (!elements.notifWrap || !elements.notifPanel || elements.notifPanel.classList.contains("hidden")) {
+        return;
+    }
+    if (!elements.notifWrap.contains(event.target)) {
+        closeNotifPanel();
+    }
 }

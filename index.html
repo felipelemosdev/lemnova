@@ -103,20 +103,24 @@
                             <span id="currentDate" class="date-chip date-display"></span>
                             <!-- * BOTÃO CREDITO *<span class="credit-chip">2026</span>-->
                         </div>
+                        <button id="emailButton" class="icon-button quick-action-button" type="button" aria-label="Abrir e-mail" title="E-mail (em breve)">✉️</button>
+                        <button id="whatsappButton" class="icon-button quick-action-button" type="button" aria-label="Abrir WhatsApp" title="WhatsApp (em breve)">💬</button>
+                        <button id="topbarPrintButton" class="icon-button quick-action-button" type="button" aria-label="Imprimir seção atual" title="Imprimir">🖨</button>
+                        <div class="notif-wrap">
+                            <button id="notifButton" class="icon-button notif-button" type="button" aria-label="Notificações">
+                                🔔
+                                <span id="notifBadge" class="notif-badge hidden">0</span>
+                            </button>
+                            <div id="notifPanel" class="notif-panel hidden">
+                                <div class="notif-panel-header">Notificações</div>
+                                <div id="notifList" class="notif-panel-body"></div>
+                            </div>
+                        </div>
                         <button id="mobileMenuButton" class="icon-button" type="button" aria-label="Abrir menu">☰</button>
                     </div>
                 </header>
 
                 <section id="dashboardSection" class="content-section active-section">
-
-<!-- Topo IMPRESSÃO -->
-
-    <div class="dash-topbar">
-        <button class="btn btn-ghost btn-print" type="button"
-            onclick="printSection('dashboardSection', 'Dashboard')">
-            🖨 Imprimir
-        </button>
-    </div>
 
     <!-- Indicadores -->
     <div class="dashboard-summary-grid">
@@ -441,7 +445,6 @@
                                     <p class="eyebrow">Clientes já cadastrados</p>
                                     <h3>Lista de clientes</h3>
                                 </div>
-                                <button class="btn btn-ghost btn-print" type="button" onclick="printSection('registeredClientsPanel', 'Clientes')">🖨 Imprimir</button>
                             </div>
 
                             <div class="list-controls">
@@ -543,7 +546,6 @@
                                     <p class="eyebrow">Processos judiciais</p>
                                     <h3>Listagem</h3>
                                 </div>
-                                <button class="btn btn-ghost btn-print" type="button" onclick="printSection('documentListPanel', 'Processos')">🖨 Imprimir</button>
                             </div>
                             <div id="documentList" class="document-list"></div>
                             <p id="documentEmptyState" class="empty-state">Nenhum processo judicial cadastrado.</p>
@@ -552,9 +554,6 @@
                 </section>
 
                 <section id="financeSection" class="content-section">
-                    <div class="dash-topbar">
-                        <button class="btn btn-ghost btn-print" type="button" onclick="printSection('financeSection', 'Financeiro')">🖨 Imprimir Financeiro</button>
-                    </div>
                     <div class="finance-overview">
                         <article class="summary-card">
                             <span>Honorários</span>
@@ -656,9 +655,6 @@
 
                 <!-- Seção Agenda (CRUD completo) -->
                 <section id="agendaSection" class="content-section">
-                    <div class="dash-topbar">
-                        <button class="btn btn-ghost btn-print" type="button" onclick="printSection('agendaSection', 'Agenda')">🖨 Imprimir Agenda</button>
-                    </div>
                     <div class="workspace-grid">
                         <section class="workspace-panel">
                             <div class="section-heading">
@@ -802,7 +798,6 @@
                                     <p class="eyebrow">Gestão</p>
                                     <h3>Tarefas cadastradas</h3>
                                 </div>
-                                <button class="btn btn-ghost btn-print" type="button" onclick="printSection('taskListPanel', 'Tarefas')">🖨 Imprimir</button>
                             </div>
                             <div id="taskList" class="compact-list"></div>
                             <p class="empty-state hidden" id="taskEmptyState">Nenhuma tarefa cadastrada.</p>

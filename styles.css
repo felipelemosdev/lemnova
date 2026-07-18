@@ -516,7 +516,7 @@ textarea:focus {
 .main-area {
     flex: 1;
     min-width: 0;
-    padding: 28px;
+    padding: 14px 28px 28px;
     overflow-y: auto; /* o conteúdo do dashboard rola aqui dentro, não a página toda */
 }
 
@@ -524,42 +524,141 @@ textarea:focus {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
-    margin-bottom: 24px;
+    gap: 14px;
+    margin-bottom: 16px;
 }
 
 .topbar h2 {
     margin: 0;
     color: var(--color-navy);
-    font-size: clamp(1.0rem, 1.5vw, 1.3rem);
+    font-size: clamp(0.88rem, 1.2vw, 1.05rem);
+}
+
+.topbar .eyebrow {
+    font-size: 0.68rem;
+    margin-bottom: 1px;
 }
 
 .topbar-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .date-chip {
     display: inline-flex;
     align-items: center;
-    min-height: 38px;
-    padding: 0 14px;
+    min-height: 30px;
+    padding: 0 11px;
     border: 1px solid var(--color-border);
     border-radius: 999px;
     background: var(--color-white);
     color: var(--color-muted);
-    font-size: 0.82rem;
+    font-size: 0.72rem;
     font-weight: 700;
     white-space: nowrap;
 }
 
 .icon-button {
     display: none;
-    width: 42px;
+    width: 36px;
+    min-height: 36px;
     color: var(--color-navy);
     background: var(--color-white);
     border: 1px solid var(--color-border);
+}
+
+.notif-wrap {
+    position: relative;
+}
+
+.quick-action-button {
+    display: inline-flex !important;
+    font-size: 1rem;
+}
+
+.notif-button {
+    display: inline-flex !important;
+    position: relative;
+    font-size: 1rem;
+}
+
+.notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: var(--color-danger);
+    color: var(--color-white);
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.notif-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 300px;
+    max-height: 340px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-white);
+    box-shadow: 0 18px 40px rgba(16, 32, 58, 0.16);
+    z-index: 20;
+}
+
+.notif-panel-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--color-border);
+    font-weight: 800;
+    font-size: 0.82rem;
+    color: var(--color-navy);
+}
+
+.notif-panel-body {
+    padding: 6px;
+}
+
+.notif-item {
+    display: block;
+    padding: 8px 8px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    color: var(--color-navy);
+}
+
+.notif-item:hover {
+    background: var(--color-surface);
+}
+
+.notif-item strong {
+    display: block;
+    font-size: 0.78rem;
+}
+
+.notif-item span {
+    display: block;
+    margin-top: 2px;
+    color: var(--color-muted);
+    font-size: 0.72rem;
+}
+
+.notif-item.overdue strong {
+    color: var(--color-danger);
+}
+
+.notif-panel-body .empty-state {
+    padding: 14px 8px;
+    margin: 0;
+    font-size: 0.78rem;
 }
 
 .content-section {
@@ -1506,13 +1605,14 @@ td {
 .dash-topbar {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .btn-print {
-    gap: 6px;
-    font-size: 0.85rem;
-    padding: 0 14px;
+    gap: 5px;
+    min-height: 30px;
+    font-size: 0.74rem;
+    padding: 0 11px;
 }
 
 .dashboard-3col {

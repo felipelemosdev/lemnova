@@ -14,6 +14,9 @@ import {
     showSystem,
     toggleMobileMenu,
     toggleSidebarCollapse,
+    toggleNotifPanel,
+    closeNotifPanel,
+    handleOutsideNotifClick,
     closeConfirmModal
 } from "./dom.js";
 import { createId, todayISO } from "./utils.js";
@@ -100,6 +103,16 @@ function bindEvents() {
     elements.mobileMenuButton.addEventListener("click", toggleMobileMenu);
     if (elements.sidebarToggle) {
         elements.sidebarToggle.addEventListener("click", toggleSidebarCollapse);
+    }
+    if (elements.notifButton) {
+        elements.notifButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+            toggleNotifPanel();
+        });
+        document.addEventListener("click", handleOutsideNotifClick);
+    }
+    if (elements.topbarPrintButton) {
+        elements.topbarPrintButton.addEventListener("click", handleTopbarPrint);
     }
     elements.clientForm.addEventListener("submit", handleClientSubmit);
     elements.cancelClientEdit.addEventListener("click", resetClientForm);
@@ -276,6 +289,23 @@ export function renderAll() {
 
 
 
+const PRINT_TARGETS = {
+    dashboard: { sectionId: "dashboardSection", title: "Dashboard" },
+    clients: { sectionId: "registeredClientsPanel", title: "Clientes" },
+    documents: { sectionId: "documentListPanel", title: "Processos" },
+    finance: { sectionId: "financeSection", title: "Financeiro" },
+    agenda: { sectionId: "agendaSection", title: "Agenda" },
+    tasks: { sectionId: "taskListPanel", title: "Tarefas" }
+};
+
+function handleTopbarPrint() {
+    const target = PRINT_TARGETS[appState.currentView];
+    if (!target) return;
+    printSection(target.sectionId, target.title);
+}
+
+
+
 function handleGlobalKeydown(event) {
     if (event.key !== "Escape") {
         return;
@@ -283,6 +313,7 @@ function handleGlobalKeydown(event) {
 
     closeConfirmModal();
     closeDocumentPreview();
+    closeNotifPanel();
 }
 
 
