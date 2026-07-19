@@ -84,28 +84,13 @@ import {
 } from "./dashboard.js";
 
 import { printSection } from "./print.js";
-
 import {
-    seedKitsIfEmpty,
-    setKitsTab,
-    renderKitsTabs,
-    renderKits,
-    renderTemplates,
-    renderClientDocumentsTab,
-    handleKitSubmit,
-    resetKitForm,
-    handleKitListClick,
-    handleTemplateSubmit,
-    resetTemplateForm,
-    handleTemplateListClick,
-    handleKitsClientChange,
-    generateClientDocumentation,
-    handleClientDocListClick,
-    closeClientDocEditor,
-    saveClientDocEdit,
-    handleAttachmentUpload,
-    handleAttachmentListClick
-} from "./kits.js";
+    closeContractModal,
+    generateAndPrintContract,
+    updateContractVariantVisibility,
+    handleContractPdfUpload,
+    handleContractPdfRemove
+} from "./contract.js";
 
 // Módulo autocontido: só liga seus próprios listeners (busca de processo pelo número CNJ).
 import "./cnj.js";
@@ -117,11 +102,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     await migrateLegacyStorage();
     await loadState();
     await seedInitialData();
-    await seedKitsIfEmpty();
     await hydrateSession();
 
     showClientMode("list");
-    renderKitsTabs();
     renderAll();
     startClock();
 });
@@ -157,6 +140,26 @@ function bindEvents() {
     if (elements.printTasksReportButton) {
         elements.printTasksReportButton.addEventListener("click", printTasksReport);
     }
+    if (elements.contractCancelButton) {
+        elements.contractCancelButton.addEventListener("click", closeContractModal);
+    }
+    if (elements.contractTemplateSelect) {
+        elements.contractTemplateSelect.addEventListener("change", updateContractVariantVisibility);
+    }
+    if (elements.contractGenerateButton) {
+        elements.contractGenerateButton.addEventListener("click", generateAndPrintContract);
+    }
+    if (elements.contractPdfInput) {
+        elements.contractPdfInput.addEventListener("change", handleContractPdfUpload);
+    }
+    if (elements.contractPdfRemoveButton) {
+        elements.contractPdfRemoveButton.addEventListener("click", handleContractPdfRemove);
+    }
+    if (elements.contractOverlay) {
+        elements.contractOverlay.addEventListener("click", (event) => {
+            if (event.target === elements.contractOverlay) closeContractModal();
+        });
+    }
     if (elements.topbarPrintButton) {
         elements.topbarPrintButton.addEventListener("click", handleTopbarPrint);
     }
@@ -174,6 +177,9 @@ function bindEvents() {
     });
     elements.clientSearch.addEventListener("input", renderClients);
     elements.clientSortOrder.addEventListener("change", renderClients);
+    if (elements.clientContractTypeFilter) {
+        elements.clientContractTypeFilter.addEventListener("change", renderClients);
+    }
     elements.clientTableBody.addEventListener("click", handleClientTableClick);
     elements.dashAddEventButton.addEventListener("click", () => {
         resetEventForm();
@@ -193,6 +199,9 @@ function bindEvents() {
     elements.documentPreviewOverlay.addEventListener("click", handlePreviewOverlayClick);
     elements.financeForm.addEventListener("submit", handleFinanceSubmit);
     elements.financeTableBody.addEventListener("click", handleFinanceTableClick);
+    if (elements.financeContractTypeFilter) {
+        elements.financeContractTypeFilter.addEventListener("change", renderFinance);
+    }
     document.addEventListener("keydown", handleGlobalKeydown);
     elements.taskForm.addEventListener("submit", handleTaskSubmit);
     elements.taskList.addEventListener("click", handleTaskListClick);
@@ -207,38 +216,6 @@ function bindEvents() {
             elements.sidebar.classList.remove("open");
         });
     });
-
-    bindKitsEvents();
-}
-
-
-function bindKitsEvents() {
-    elements.kitsTabButtons.forEach((button) => {
-        button.addEventListener("click", () => setKitsTab(button.dataset.kitsTab));
-    });
-
-    elements.kitForm.addEventListener("submit", handleKitSubmit);
-    elements.cancelKitEdit.addEventListener("click", resetKitForm);
-    elements.kitList.addEventListener("click", handleKitListClick);
-
-    elements.templateForm.addEventListener("submit", handleTemplateSubmit);
-    elements.cancelTemplateEdit.addEventListener("click", resetTemplateForm);
-    elements.templateList.addEventListener("click", handleTemplateListClick);
-
-    elements.kitsClientSelect.addEventListener("change", handleKitsClientChange);
-    elements.generateDocsButton.addEventListener("click", () => {
-        if (appState.kitsSelectedClientId) {
-            generateClientDocumentation(appState.kitsSelectedClientId);
-        }
-    });
-    elements.clientDocList.addEventListener("click", handleClientDocListClick);
-
-    elements.attachmentInput.addEventListener("change", handleAttachmentUpload);
-    elements.attachmentList.addEventListener("click", handleAttachmentListClick);
-
-    elements.closeDocEditor.addEventListener("click", closeClientDocEditor);
-    document.getElementById("closeDocEditorSecondary").addEventListener("click", closeClientDocEditor);
-    elements.saveDocEditorButton.addEventListener("click", saveClientDocEdit);
 }
 
 
@@ -249,10 +226,7 @@ async function loadState() {
     appState.finance = await readStorage(STORAGE_KEYS.finance, []);
     appState.events = await readStorage(STORAGE_KEYS.events, []);
     appState.tasks = await readStorage(STORAGE_KEYS.tasks, []);
-    appState.kits = await readStorage(STORAGE_KEYS.kits, []);
-    appState.templates = await readStorage(STORAGE_KEYS.templates, []);
-    appState.clientDocuments = await readStorage(STORAGE_KEYS.clientDocuments, []);
-    appState.clientAttachments = await readStorage(STORAGE_KEYS.clientAttachments, []);
+    appState.contractPdfTemplates = await readStorage(STORAGE_KEYS.contractPdfTemplates, []);
 }
 
 
@@ -370,9 +344,6 @@ export function renderAll() {
     renderEvents();
     renderDashboardEvents();
     renderTasks();
-    renderKits();
-    renderTemplates();
-    renderClientDocumentsTab();
 }
 
 
@@ -383,8 +354,7 @@ const PRINT_TARGETS = {
     documents: { sectionId: "documentListPanel", title: "Processos" },
     finance: { sectionId: "financeSection", title: "Financeiro" },
     agenda: { sectionId: "agendaSection", title: "Agenda" },
-    tasks: { sectionId: "taskListPanel", title: "Tarefas" },
-    kits: { sectionId: "kitsSection", title: "Kits Jurídicos" }
+    tasks: { sectionId: "taskListPanel", title: "Tarefas" }
 };
 
 function handleTopbarPrint() {
@@ -409,7 +379,7 @@ function handleGlobalKeydown(event) {
     closeDocumentPreview();
     closeNotifPanel();
     closeNotificationDetail();
-    closeClientDocEditor();
+    closeContractModal();
 }
 
 

@@ -4,7 +4,7 @@
 // os componentes de renderização do card expansível de cada cliente.
 
 import { appState, findClient, persistAll } from "./state.js";
-import { elements, closeConfirmModal, setActiveView } from "./dom.js";
+import { elements, closeConfirmModal } from "./dom.js";
 import {
     createId,
     formatCpf,
@@ -17,12 +17,14 @@ import {
     escapeHTML,
     fileToDataURL,
     isAllowedImage,
-    isAllowedPdf
+    isAllowedPdf,
+    CONTRACT_TYPES,
+    getContractTypeLabel
 } from "./utils.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { openDocumentPreview } from "./documents.js";
 import { confirmFinanceDelete } from "./finance.js";
-import { detectKitForClient, generateClientDocumentation, renderKitsTabs, renderClientDocumentsTab } from "./kits.js";
+import { openContractModal } from "./contract.js";
 import { renderAll } from "./main.js";
 
 export async function handleClientSubmit(event) {
@@ -84,6 +86,10 @@ export async function handleClientSubmit(event) {
         phone: elements.clientPhone.value.trim(),
         inssPassword: elements.clientInssPassword.value.trim(),
         document: elements.clientDocument.value.trim(),
+        rg: elements.clientRg.value.trim(),
+        nationality: elements.clientNationality.value.trim(),
+        maritalStatus: elements.clientMaritalStatus.value,
+        profession: elements.clientProfession.value.trim(),
         address: {
             cep: elements.clientCep.value.trim(),
             street: elements.clientStreet.value.trim(),
@@ -94,7 +100,8 @@ export async function handleClientSubmit(event) {
             complement: elements.clientComplement.value.trim()
         },
         area: elements.clientArea.value,
-        serviceType: elements.clientServiceType.value,
+        benefit: elements.clientBenefit ? elements.clientBenefit.value : "",
+        contractType: elements.clientContractType ? elements.clientContractType.value : "",
         status: elements.clientStatus.value,
         notes: elements.clientNotes.value.trim(),
         photoData,
@@ -170,16 +177,8 @@ export function handleClientTableClick(event) {
         openClientPdfPreview(button.dataset.id);
     }
 
-    if (action === "generate-docs") {
-        generateClientDocumentation(clientId);
-    }
-
-    if (action === "view-client-docs") {
-        appState.kitsSelectedClientId = clientId;
-        appState.activeKitsTab = "clientDocs";
-        setActiveView("kits");
-        renderKitsTabs();
-        renderClientDocumentsTab();
+    if (action === "print-contract") {
+        openContractModal(clientId);
     }
 }
 
@@ -197,6 +196,10 @@ export function fillClientForm(clientId) {
     elements.clientPhone.value = client.phone;
     elements.clientInssPassword.value = client.inssPassword || "";
     elements.clientDocument.value = formatCpf(client.document);
+    elements.clientRg.value = client.rg || "";
+    elements.clientNationality.value = client.nationality || "Brasileiro(a)";
+    elements.clientMaritalStatus.value = client.maritalStatus || "";
+    elements.clientProfession.value = client.profession || "";
     elements.clientCep.value = formatCep(client.address?.cep || "");
     elements.clientStreet.value = client.address?.street || "";
     elements.clientNumber.value = client.address?.number || "";
@@ -205,7 +208,12 @@ export function fillClientForm(clientId) {
     elements.clientState.value = client.address?.state || "";
     elements.clientComplement.value = client.address?.complement || "";
     elements.clientArea.value = client.area;
-    elements.clientServiceType.value = client.serviceType || "";
+    if (elements.clientBenefit) {
+        elements.clientBenefit.value = client.benefit || "";
+    }
+    if (elements.clientContractType) {
+        elements.clientContractType.value = client.contractType || "";
+    }
     elements.clientStatus.value = client.status;
     elements.clientNotes.value = client.notes;
     updatePhotoPreview(client.photoData || "");
@@ -455,10 +463,13 @@ export function sortClients(clients, order) {
 export function renderClients() {
     const searchTerm = elements.clientSearch.value.trim().toLowerCase();
     const sortOrder = elements.clientSortOrder ? elements.clientSortOrder.value : "name-asc";
+    const contractTypeFilter = elements.clientContractTypeFilter ? elements.clientContractTypeFilter.value : "";
     const filteredClients = sortClients(
         appState.clients.filter((client) => {
             const content = `${client.name} ${client.document} ${client.phone}`.toLowerCase();
-            return content.includes(searchTerm);
+            const matchesSearch = content.includes(searchTerm);
+            const matchesContractType = !contractTypeFilter || client.contractType === contractTypeFilter;
+            return matchesSearch && matchesContractType;
         }),
         sortOrder
     );
@@ -478,10 +489,11 @@ export function renderClients() {
                 ${createClientAvatar(client)}
                 <div class="client-profile-title">
                     <strong>${escapeHTML(client.name)}</strong>
-                    <span>CPF ${escapeHTML(formatCpf(client.document))} · ${escapeHTML(client.status || "Sem status")}</span>
+                    <span>CPF ${escapeHTML(formatCpf(client.document))} · ${escapeHTML(client.status || "Sem status")}${client.contractType ? ` · <span class="status-pill">${escapeHTML(getContractTypeLabel(client.contractType))}</span>` : ""}</span>
                 </div>
                 <div class="table-actions">
                     <button class="action-button" type="button" data-action="toggle-client" data-id="${client.id}">${isOpen ? "Fechar" : "Abrir"}</button>
+                    <button class="action-button" type="button" data-action="print-contract" data-id="${client.id}">🖨 Contrato</button>
                     <button class="action-button" type="button" data-action="edit" data-id="${client.id}">Editar</button>
                     <button class="action-button danger" type="button" data-action="delete" data-id="${client.id}">Excluir</button>
                 </div>
@@ -490,6 +502,12 @@ export function renderClients() {
             <div class="client-expanded ${isOpen ? "" : "hidden"}">
                 <div class="client-detail-grid">
                     ${createDetailItem("CPF", formatCpf(client.document))}
+                    ${createDetailItem("RG", client.rg)}
+                    ${createDetailItem("Nacionalidade", client.nationality)}
+                    ${createDetailItem("Estado civil", client.maritalStatus)}
+                    ${createDetailItem("Profissão", client.profession)}
+                    ${createDetailItem("Benefício", client.benefit)}
+                    ${createDetailItem("Tipo de contrato", client.contractType ? getContractTypeLabel(client.contractType) : "Não definido")}
                     ${createDetailItem("Telefone", client.phone)}
                     ${createDetailItem("Email", client.email)}
                     ${createDetailItem("Senha INSS", client.inssPassword || "Não informado")}
@@ -503,8 +521,6 @@ export function renderClients() {
                 </div>
 
                 ${createClientPdfBlock(client)}
-
-                ${createKitBlock(client)}
 
                 <div class="client-documents-block">
                     <div>
@@ -559,53 +575,6 @@ function createClientPdfBlock(client) {
                     </div>
                     <button class="action-button" type="button" data-action="preview-client-pdf" data-id="${client.id}">Visualizar</button>
                     <span class="document-badge">PDF</span>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-
-function createKitBlock(client) {
-    const kit = detectKitForClient(client);
-    const generatedCount = appState.clientDocuments.filter((doc) => doc.clientId === client.id).length;
-
-    if (!client.serviceType) {
-        return `
-            <div class="client-documents-block">
-                <div>
-                    <strong>Kit Jurídico</strong>
-                    <span>Informe o "Tipo de Prestação de Serviço" no cadastro para identificar o kit automaticamente.</span>
-                </div>
-            </div>
-        `;
-    }
-
-    if (!kit) {
-        return `
-            <div class="client-documents-block">
-                <div>
-                    <strong>Kit Jurídico</strong>
-                    <span>Nenhum kit cadastrado para "${escapeHTML(client.serviceType)}". Cadastre em Kits Jurídicos → Kits & Modelos.</span>
-                </div>
-            </div>
-        `;
-    }
-
-    return `
-        <div class="client-documents-block">
-            <div>
-                <strong>Kit Jurídico</strong>
-                <span>${escapeHTML(kit.name)} · ${kit.documentIds.length} documento(s) · ${generatedCount ? `${generatedCount} já gerado(s)` : "nenhum documento gerado ainda"}</span>
-            </div>
-            <div class="client-document-list">
-                <div class="client-document-item">
-                    <div>
-                        <strong>${escapeHTML(client.serviceType)}</strong>
-                        <span>Preenche os documentos do kit com os dados deste cliente</span>
-                    </div>
-                    <button class="action-button" type="button" data-action="generate-docs" data-id="${client.id}">📄 Gerar Documentação</button>
-                    ${generatedCount ? `<button class="action-button" type="button" data-action="view-client-docs" data-id="${client.id}">Ver documentos</button>` : ""}
                 </div>
             </div>
         </div>

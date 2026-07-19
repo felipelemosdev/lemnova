@@ -5,7 +5,7 @@
 
 import { appState, findClient } from "./state.js";
 import { elements, closeConfirmModal } from "./dom.js";
-import { createId, todayISO, formatCurrency, formatDate, escapeHTML } from "./utils.js";
+import { createId, todayISO, formatCurrency, formatDate, escapeHTML, getContractTypeLabel } from "./utils.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { renderAll } from "./main.js";
 
@@ -19,6 +19,7 @@ export async function handleFinanceSubmit(event) {
         amount: Number(elements.financeAmount.value),
         date: elements.financeDate.value,
         clientId: elements.financeClient.value,
+        contractType: elements.financeContractType ? elements.financeContractType.value : "",
         description: elements.financeDescription.value.trim(),
         createdAt: new Date().toISOString()
     });
@@ -33,10 +34,20 @@ export async function handleFinanceSubmit(event) {
 
 
 export function renderFinance() {
-    elements.financeTableBody.innerHTML = "";
-    elements.financeEmptyState.classList.toggle("hidden", appState.finance.length > 0);
+    const contractTypeFilter = elements.financeContractTypeFilter ? elements.financeContractTypeFilter.value : "";
+    const entries = appState.finance.filter((entry) => (
+        !contractTypeFilter || entry.contractType === contractTypeFilter
+    ));
 
-    appState.finance.forEach((entry) => {
+    elements.financeTableBody.innerHTML = "";
+    elements.financeEmptyState.classList.toggle("hidden", entries.length > 0);
+    if (!entries.length && appState.finance.length) {
+        elements.financeEmptyState.textContent = "Nenhuma movimentação para este tipo de contrato.";
+    } else {
+        elements.financeEmptyState.textContent = "Nenhuma movimentação cadastrada.";
+    }
+
+    entries.forEach((entry) => {
         const client = findClient(entry.clientId);
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -48,6 +59,7 @@ export function renderFinance() {
                     <span>${client ? escapeHTML(client.name) : "Sem cliente"}</span>
                 </div>
             </td>
+            <td>${entry.contractType ? `<span class="status-pill">${escapeHTML(getContractTypeLabel(entry.contractType))}</span>` : "-"}</td>
             <td>${formatCurrency(entry.amount)}</td>
             <td>${formatDate(entry.date)}</td>
             <td><button class="action-button danger" type="button" data-action="delete-finance" data-id="${entry.id}">Excluir</button></td>

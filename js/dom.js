@@ -30,8 +30,7 @@ export function cacheElements() {
         documents: document.getElementById("documentsSection"),
         finance: document.getElementById("financeSection"),
         agenda: document.getElementById("agendaSection"),
-        tasks: document.getElementById("tasksSection"),
-        kits: document.getElementById("kitsSection")
+        tasks: document.getElementById("tasksSection")
     };
     elements.dashAddEventButton = document.getElementById("dashAddEventButton");
     elements.dashEventList = document.getElementById("dashEventList");
@@ -45,6 +44,12 @@ export function cacheElements() {
     elements.clientInssPassword = document.getElementById("clientInssPassword");
     elements.clientDocument = document.getElementById("clientDocument");
     elements.clientCpfMessage = document.getElementById("clientCpfMessage");
+    elements.clientRg = document.getElementById("clientRg");
+    elements.clientNationality = document.getElementById("clientNationality");
+    elements.clientMaritalStatus = document.getElementById("clientMaritalStatus");
+    elements.clientProfession = document.getElementById("clientProfession");
+    elements.clientBenefit = document.getElementById("clientBenefit");
+    elements.clientContractType = document.getElementById("clientContractType");
     elements.clientCep = document.getElementById("clientCep");
     elements.clientCepMessage = document.getElementById("clientCepMessage");
     elements.clientStreet = document.getElementById("clientStreet");
@@ -54,7 +59,6 @@ export function cacheElements() {
     elements.clientState = document.getElementById("clientState");
     elements.clientComplement = document.getElementById("clientComplement");
     elements.clientArea = document.getElementById("clientArea");
-    elements.clientServiceType = document.getElementById("clientServiceType");
     elements.clientStatus = document.getElementById("clientStatus");
     elements.clientNotes = document.getElementById("clientNotes");
     elements.clientPhoto = document.getElementById("clientPhoto");
@@ -66,6 +70,7 @@ export function cacheElements() {
     elements.registeredClientsPanel = document.getElementById("registeredClientsPanel");
     elements.clientSearch = document.getElementById("clientSearch");
     elements.clientSortOrder = document.getElementById("clientSortOrder");
+    elements.clientContractTypeFilter = document.getElementById("clientContractTypeFilter");
     elements.clientTableBody = document.getElementById("clientTableBody");
     elements.clientEmptyState = document.getElementById("clientEmptyState");
     elements.dashClientCount = document.getElementById("dashClientCount");
@@ -110,6 +115,8 @@ export function cacheElements() {
     elements.financeAmount = document.getElementById("financeAmount");
     elements.financeDate = document.getElementById("financeDate");
     elements.financeClient = document.getElementById("financeClient");
+    elements.financeContractType = document.getElementById("financeContractType");
+    elements.financeContractTypeFilter = document.getElementById("financeContractTypeFilter");
     elements.financeDescription = document.getElementById("financeDescription");
     elements.financeTableBody = document.getElementById("financeTableBody");
     elements.financeEmptyState = document.getElementById("financeEmptyState");
@@ -160,50 +167,16 @@ export function cacheElements() {
     elements.notifDetailCloseButton = document.getElementById("notifDetailCloseButton");
     elements.notifDetailCompleteButton = document.getElementById("notifDetailCompleteButton");
     elements.printTasksReportButton = document.getElementById("printTasksReportButton");
-
-    // --- Módulo Kits Jurídicos ---
-    elements.kitsTabButtons = document.querySelectorAll("[data-kits-tab]");
-    elements.kitsPanels = {
-        kits: document.getElementById("kitsPanel"),
-        templates: document.getElementById("templatesPanel"),
-        clientDocs: document.getElementById("clientDocsPanel")
-    };
-
-    elements.kitForm = document.getElementById("kitForm");
-    elements.kitFormTitle = document.getElementById("kitFormTitle");
-    elements.cancelKitEdit = document.getElementById("cancelKitEdit");
-    elements.kitName = document.getElementById("kitName");
-    elements.kitCategory = document.getElementById("kitCategory");
-    elements.kitServiceType = document.getElementById("kitServiceType");
-    elements.kitStatus = document.getElementById("kitStatus");
-    elements.kitDocumentsPicker = document.getElementById("kitDocumentsPicker");
-    elements.kitList = document.getElementById("kitList");
-
-    elements.templateForm = document.getElementById("templateForm");
-    elements.templateFormTitle = document.getElementById("templateFormTitle");
-    elements.cancelTemplateEdit = document.getElementById("cancelTemplateEdit");
-    elements.templateName = document.getElementById("templateName");
-    elements.templateOrder = document.getElementById("templateOrder");
-    elements.templateStatus = document.getElementById("templateStatus");
-    elements.templateBody = document.getElementById("templateBody");
-    elements.templateList = document.getElementById("templateList");
-
-    elements.kitsClientSelect = document.getElementById("kitsClientSelect");
-    elements.kitDetectionInfo = document.getElementById("kitDetectionInfo");
-    elements.generateDocsButton = document.getElementById("generateDocsButton");
-    elements.clientDocList = document.getElementById("clientDocList");
-    elements.clientDocEmptyState = document.getElementById("clientDocEmptyState");
-
-    elements.attachmentUploadWrap = document.getElementById("attachmentUploadWrap");
-    elements.attachmentInput = document.getElementById("attachmentInput");
-    elements.attachmentList = document.getElementById("attachmentList");
-    elements.attachmentEmptyState = document.getElementById("attachmentEmptyState");
-
-    elements.docEditorOverlay = document.getElementById("docEditorOverlay");
-    elements.docEditorTitle = document.getElementById("docEditorTitle");
-    elements.docEditorTextarea = document.getElementById("docEditorTextarea");
-    elements.closeDocEditor = document.getElementById("closeDocEditor");
-    elements.saveDocEditorButton = document.getElementById("saveDocEditorButton");
+    elements.contractOverlay = document.getElementById("contractOverlay");
+    elements.contractModalSubtitle = document.getElementById("contractModalSubtitle");
+    elements.contractTemplateSelect = document.getElementById("contractTemplateSelect");
+    elements.contractPdfUploadGroup = document.getElementById("contractPdfUploadGroup");
+    elements.contractPdfInput = document.getElementById("contractPdfInput");
+    elements.contractPdfCurrentInfo = document.getElementById("contractPdfCurrentInfo");
+    elements.contractPdfRemoveButton = document.getElementById("contractPdfRemoveButton");
+    elements.contractModalWarning = document.getElementById("contractModalWarning");
+    elements.contractCancelButton = document.getElementById("contractCancelButton");
+    elements.contractGenerateButton = document.getElementById("contractGenerateButton");
 }
 
 
@@ -214,8 +187,7 @@ export function setActiveView(viewName) {
         documents: "Processos",
         finance: "Financeiro",
         agenda: "Agenda",
-        tasks: "Tarefas",
-        kits: "Kits Jurídicos"
+        tasks: "Tarefas"
     };
 
     appState.currentView = viewName;

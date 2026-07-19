@@ -15,16 +15,21 @@ export const STORAGE_KEYS = {
     templates: "juresone.templates",
     clientDocuments: "juresone.clientDocuments",
     clientAttachments: "juresone.clientAttachments",
+    contractPdfTemplates: "juresone.contractPdfTemplates",
     initialized: "juresone.initialized"
 };
 
 // versão 2: adiciona as object stores do módulo de Kits Jurídicos (kits, modelos de
-// documento, documentos gerados por cliente e anexos do cliente). O bloco "upgradeneeded"
-// cria apenas as stores que ainda não existirem, então bancos já abertos na versão 1 são
-// atualizados automaticamente sem perda de dados.
+// documento, documentos gerados por cliente e anexos do cliente).
+// versão 3: adiciona a store de modelos de contrato em PDF (contractPdfTemplates), usada
+// pelos tipos de contrato que ainda não têm cláusulas próprias cadastradas em contract.js —
+// o usuário anexa o PDF original do contrato e ele é reaproveitado para todos os clientes
+// daquele tipo. O bloco "upgradeneeded" cria apenas as stores que ainda não existirem,
+// então bancos já abertos em versões anteriores são atualizados automaticamente sem perda
+// de dados.
 const DATABASE_CONFIG = {
     name: "juresone.database",
-    version: 2,
+    version: 3,
     stores: {
         [STORAGE_KEYS.clients]: "clients",
         [STORAGE_KEYS.documents]: "documents",
@@ -35,6 +40,7 @@ const DATABASE_CONFIG = {
         [STORAGE_KEYS.templates]: "templates",
         [STORAGE_KEYS.clientDocuments]: "clientDocuments",
         [STORAGE_KEYS.clientAttachments]: "clientAttachments",
+        [STORAGE_KEYS.contractPdfTemplates]: "contractPdfTemplates",
     },
     metaStore: "meta",
     legacyMigratedKey: "legacyMigrated"

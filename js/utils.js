@@ -2,6 +2,30 @@
 // Funções utilitárias puras (sem dependência de appState, elements ou storage),
 // usadas por vários módulos: formatação, validação de CPF/CEP, ids, arquivos, HTML escaping etc.
 
+// Lista única de tipos de contrato usada em todo o sistema (cadastro de cliente, filtro
+// de busca, financeiro e módulo de contratos). Mantida em um só lugar para que os ids
+// batam entre client.contractType, financeEntry.contractType e CONTRACT_TEMPLATES.
+export const CONTRACT_TYPES = [
+    { id: "aposentadoria", label: "Aposentadoria" },
+    { id: "auxilio_doenca", label: "Auxílio Doença" },
+    { id: "auxilio_acidente", label: "Auxílio Acidente" },
+    { id: "doenca_ocupacional", label: "Doença Ocupacional" },
+    { id: "pensao_morte", label: "Pensão por Morte" },
+    { id: "trabalhista", label: "Trabalhista" },
+    { id: "maternidade", label: "Maternidade" },
+    { id: "majoracao", label: "Majoração" },
+    { id: "loas_idoso", label: "LOAS Idoso" },
+    { id: "loas_deficiente", label: "LOAS Deficiente" },
+    { id: "consumidor", label: "Consumidor" }
+];
+
+
+export function getContractTypeLabel(contractTypeId) {
+    const found = CONTRACT_TYPES.find((item) => item.id === contractTypeId);
+    return found ? found.label : "";
+}
+
+
 export function onlyDigits(value) {
     return String(value || "").replace(/\D/g, "");
 }
