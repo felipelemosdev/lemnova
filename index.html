@@ -84,6 +84,11 @@
                      <span class="nav-icon">✓</span>
                      <span class="nav-label">Tarefas</span>
                     </button>
+                    <button class="nav-link" type="button" data-view="kits">
+                        <span class="nav-icon" aria-hidden="true">⚖</span>
+                        <span class="nav-label">Kits Jurídicos</span>
+                    </button>
+
                 </nav>
 
                 <button id="logoutButton" class="btn btn-secondary sidebar-logout" type="button">
@@ -401,17 +406,19 @@
                                 </select>
                             </label>
                             <label class="field">
-                                <span>Tipo de Benefício</span>
+                                <span>Tipo de Prestação de Serviço</span>
 
-                                <select id="clientBenefit">
+                                <select id="clientServiceType">
                                     <option value="">Selecione</option>
-                                    <option value="BPC Idoso">BPC Idoso</option>
-                                    <option value="BPC Deficiente">BPC Deficiente</option>
-                                    <option value="Salário-Maternidade">Salário-Maternidade</option>
+                                    <option value="BPC LOAS">BPC LOAS</option>
                                     <option value="Auxílio-Doença">Auxílio-Doença</option>
+                                    <option value="Pensão por Morte">Pensão por Morte</option>
+                                    <option value="Trabalhista">Trabalhista</option>
+                                    <option value="Salário-Maternidade">Salário-Maternidade</option>
                                     <option value="Acidente de Trabalho">Acidente de Trabalho</option>
                                     <option value="Aposentadoria">Aposentadoria</option>
-                                    </select>
+                                </select>
+                                <small style="color:var(--color-muted)">Define automaticamente o Kit Jurídico usado em "Gerar Documentação".</small>
                             </label>
 
                             <label class="field">
@@ -722,6 +729,7 @@
                                     <p class="eyebrow">Eventos</p>
                                     <h3>Agenda cadastrada</h3>
                                 </div>
+                                <button id="printCompletedEventsButton" class="btn btn-ghost btn-print" type="button">🖨 Relatório de concluídos</button>
                             </div>
                             <label class="search-field">
                                 <span class="sr-only">Pesquisar eventos</span>
@@ -798,6 +806,7 @@
                                     <p class="eyebrow">Gestão</p>
                                     <h3>Tarefas cadastradas</h3>
                                 </div>
+                                <button id="printTasksReportButton" class="btn btn-ghost btn-print" type="button">🖨 Relatório por status</button>
                             </div>
                             <div id="taskList" class="compact-list"></div>
                             <p class="empty-state hidden" id="taskEmptyState">Nenhuma tarefa cadastrada.</p>
@@ -839,12 +848,201 @@
                             <div class="modal-actions">
                                 <button class="btn btn-ghost" type="button" onclick="printTaskReply()">🖨 Imprimir resposta</button>
                                 <button class="btn btn-ghost" type="button" onclick="closeTaskReply()">Fechar</button>
+                                <button id="taskReplyCompleteButton" class="btn btn-success" type="button" onclick="completeTaskFromReply()">✓ CONCLUÍDO</button>
                                 <button class="btn btn-primary" type="button" onclick="saveTaskReply()">Salvar resposta</button>
                             </div>
                         </div>
                     </div>
                 </section>
-                               
+
+                <section id="kitsSection" class="content-section">
+                    <div class="client-toolbar">
+                        <button class="btn btn-primary" type="button" data-kits-tab="kits">Kits Jurídicos</button>
+                        <button class="btn btn-ghost" type="button" data-kits-tab="templates">Modelos de documento</button>
+                        <button class="btn btn-ghost" type="button" data-kits-tab="clientDocs">Documentos do Cliente</button>
+                    </div>
+
+                    <!-- Painel: Kits Jurídicos -->
+                    <div id="kitsPanel" class="workspace-grid">
+                        <form id="kitForm" class="workspace-panel form-grid">
+                            <div class="section-heading full-width">
+                                <div>
+                                    <p class="eyebrow">Cadastro</p>
+                                    <h3 id="kitFormTitle">Novo Kit Jurídico</h3>
+                                </div>
+                                <button id="cancelKitEdit" class="btn btn-ghost hidden" type="button">Cancelar edição</button>
+                            </div>
+
+                            <label class="field">
+                                <span>Nome do kit</span>
+                                <input id="kitName" type="text" placeholder="Ex.: Kit BPC/LOAS" required>
+                            </label>
+
+                            <label class="field">
+                                <span>Categoria</span>
+                                <select id="kitCategory" required>
+                                    <option value="Previdenciário">Previdenciário</option>
+                                    <option value="Trabalhista">Trabalhista</option>
+                                    <option value="Cível">Cível</option>
+                                </select>
+                            </label>
+
+                            <label class="field">
+                                <span>Tipo de Prestação de Serviço</span>
+                                <input id="kitServiceType" type="text" list="serviceTypeOptions" placeholder="Ex.: BPC LOAS" required>
+                                <datalist id="serviceTypeOptions">
+                                    <option value="BPC LOAS"></option>
+                                    <option value="Auxílio-Doença"></option>
+                                    <option value="Pensão por Morte"></option>
+                                    <option value="Trabalhista"></option>
+                                    <option value="Salário-Maternidade"></option>
+                                    <option value="Acidente de Trabalho"></option>
+                                    <option value="Aposentadoria"></option>
+                                </datalist>
+                                <small style="color:var(--color-muted)">Deve ser idêntico à opção escolhida no cadastro do cliente.</small>
+                            </label>
+
+                            <label class="field">
+                                <span>Status</span>
+                                <select id="kitStatus" required>
+                                    <option value="Ativo">Ativo</option>
+                                    <option value="Inativo">Inativo</option>
+                                </select>
+                            </label>
+
+                            <div class="field full-width">
+                                <span>Documentos do kit</span>
+                                <div id="kitDocumentsPicker" class="kit-doc-picker"></div>
+                            </div>
+
+                            <button class="btn btn-primary full-width" type="submit">Salvar kit</button>
+                        </form>
+
+                        <section class="workspace-panel">
+                            <div class="section-heading">
+                                <div>
+                                    <p class="eyebrow">Cadastrados</p>
+                                    <h3>Kits Jurídicos</h3>
+                                </div>
+                            </div>
+                            <div id="kitList" class="compact-list"></div>
+                        </section>
+                    </div>
+
+                    <!-- Painel: Modelos de documento -->
+                    <div id="templatesPanel" class="workspace-grid hidden">
+                        <form id="templateForm" class="workspace-panel form-grid">
+                            <div class="section-heading full-width">
+                                <div>
+                                    <p class="eyebrow">Cadastro</p>
+                                    <h3 id="templateFormTitle">Novo modelo de documento</h3>
+                                </div>
+                                <button id="cancelTemplateEdit" class="btn btn-ghost hidden" type="button">Cancelar edição</button>
+                            </div>
+
+                            <label class="field">
+                                <span>Nome do documento</span>
+                                <input id="templateName" type="text" placeholder="Ex.: Procuração Ad Judicia" required>
+                            </label>
+
+                            <label class="field">
+                                <span>Ordem</span>
+                                <input id="templateOrder" type="number" min="1" value="1" required>
+                            </label>
+
+                            <label class="field">
+                                <span>Status</span>
+                                <select id="templateStatus" required>
+                                    <option value="Ativo">Ativo</option>
+                                    <option value="Inativo">Inativo</option>
+                                </select>
+                            </label>
+
+                            <label class="field full-width">
+                                <span>Modelo (HTML com campos)</span>
+                                <textarea id="templateBody" rows="10" placeholder="Use campos como {{cliente.nome}}, {{cliente.cpf}}, {{cliente.enderecoCompleto}}, {{cliente.telefone}}, {{cliente.email}}, {{cliente.cidadeEstado}}, {{cliente.servico}}, {{data.hoje}}, {{escritorio.nome}}" required></textarea>
+                                <small style="color:var(--color-muted)">Campos disponíveis: {{cliente.nome}}, {{cliente.cpf}}, {{cliente.email}}, {{cliente.telefone}}, {{cliente.enderecoCompleto}}, {{cliente.cep}}, {{cliente.cidadeEstado}}, {{cliente.area}}, {{cliente.servico}}, {{data.hoje}}, {{escritorio.nome}}.</small>
+                            </label>
+
+                            <button class="btn btn-primary full-width" type="submit">Salvar modelo</button>
+                        </form>
+
+                        <section class="workspace-panel">
+                            <div class="section-heading">
+                                <div>
+                                    <p class="eyebrow">Cadastrados</p>
+                                    <h3>Modelos de documento</h3>
+                                </div>
+                            </div>
+                            <div id="templateList" class="compact-list"></div>
+                        </section>
+                    </div>
+
+                    <!-- Painel: Documentos do Cliente -->
+                    <div id="clientDocsPanel" class="hidden">
+                        <section class="workspace-panel">
+                            <div class="section-heading">
+                                <div>
+                                    <p class="eyebrow">Geração automática</p>
+                                    <h3>Documentos do Cliente</h3>
+                                </div>
+                            </div>
+
+                            <div class="list-controls">
+                                <label class="field list-controls-search">
+                                    <span>Cliente</span>
+                                    <select id="kitsClientSelect">
+                                        <option value="">Selecione um cliente</option>
+                                    </select>
+                                </label>
+                                <button id="generateDocsButton" class="btn btn-primary" type="button" disabled>📄 Gerar Documentação</button>
+                            </div>
+                            <p id="kitDetectionInfo" class="empty-state">Selecione um cliente para identificar o Kit Jurídico correspondente.</p>
+
+                            <div id="clientDocList" class="compact-list"></div>
+                            <p id="clientDocEmptyState" class="empty-state">Selecione um cliente para ver seus documentos.</p>
+                        </section>
+
+                        <section id="attachmentUploadWrap" class="workspace-panel hidden">
+                            <div class="section-heading">
+                                <div>
+                                    <p class="eyebrow">Upload livre</p>
+                                    <h3>Anexos do cliente</h3>
+                                </div>
+                            </div>
+                            <label class="field full-width">
+                                <span>Anexar PDF, DOCX ou imagem (JPG/PNG)</span>
+                                <input id="attachmentInput" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png" multiple>
+                            </label>
+                            <div id="attachmentList" class="client-document-list"></div>
+                            <p id="attachmentEmptyState" class="empty-state">Nenhum anexo para este cliente.</p>
+                        </section>
+                    </div>
+
+                    <!-- Modal de edição de documento gerado -->
+                    <div id="docEditorOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="docEditorTitle">
+                        <div class="modal-panel task-reply-modal">
+                            <div class="preview-header">
+                                <div>
+                                    <p class="eyebrow">Edição</p>
+                                    <h3 id="docEditorTitle">Editar documento</h3>
+                                </div>
+                                <button id="closeDocEditor" class="icon-button modal-close" type="button" aria-label="Fechar">×</button>
+                            </div>
+                            <div class="task-reply-body">
+                                <label class="field">
+                                    <span>Conteúdo do documento</span>
+                                    <textarea id="docEditorTextarea" rows="16"></textarea>
+                                </label>
+                            </div>
+                            <div class="modal-actions">
+                                <button class="btn btn-ghost" type="button" id="closeDocEditorSecondary">Cancelar</button>
+                                <button id="saveDocEditorButton" class="btn btn-primary" type="button">Salvar alterações</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
             </main>
         </section>
         
@@ -859,6 +1057,21 @@
                 <div class="modal-actions">
                     <button id="cancelDeleteButton" class="btn btn-ghost" type="button">Cancelar</button>
                     <button id="confirmDeleteButton" class="btn btn-danger" type="button">Excluir</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de detalhe de notificação -->
+        <div id="notifDetailOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="notifDetailTitle">
+            <div class="modal-panel">
+                <div>
+                    <p class="eyebrow" id="notifDetailEyebrow">Notificação</p>
+                    <h3 id="notifDetailTitle">Título</h3>
+                    <p id="notifDetailText" style="white-space:pre-wrap">Detalhe</p>
+                </div>
+                <div class="modal-actions">
+                    <button id="notifDetailCloseButton" class="btn btn-ghost" type="button">Fechar</button>
+                    <button id="notifDetailCompleteButton" class="btn btn-success hidden" type="button">✓ CONCLUÍDO</button>
                 </div>
             </div>
         </div>

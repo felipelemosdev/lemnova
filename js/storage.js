@@ -11,18 +11,30 @@ export const STORAGE_KEYS = {
     finance: "juresone.finance",
     events: "juresone.events",
     tasks: "juresone.tasks",
+    kits: "juresone.kits",
+    templates: "juresone.templates",
+    clientDocuments: "juresone.clientDocuments",
+    clientAttachments: "juresone.clientAttachments",
     initialized: "juresone.initialized"
 };
 
+// versão 2: adiciona as object stores do módulo de Kits Jurídicos (kits, modelos de
+// documento, documentos gerados por cliente e anexos do cliente). O bloco "upgradeneeded"
+// cria apenas as stores que ainda não existirem, então bancos já abertos na versão 1 são
+// atualizados automaticamente sem perda de dados.
 const DATABASE_CONFIG = {
     name: "juresone.database",
-    version: 1,
+    version: 2,
     stores: {
         [STORAGE_KEYS.clients]: "clients",
         [STORAGE_KEYS.documents]: "documents",
         [STORAGE_KEYS.finance]: "finance",
         [STORAGE_KEYS.events]: "events",
         [STORAGE_KEYS.tasks]: "tasks",
+        [STORAGE_KEYS.kits]: "kits",
+        [STORAGE_KEYS.templates]: "templates",
+        [STORAGE_KEYS.clientDocuments]: "clientDocuments",
+        [STORAGE_KEYS.clientAttachments]: "clientAttachments",
     },
     metaStore: "meta",
     legacyMigratedKey: "legacyMigrated"

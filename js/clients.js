@@ -4,7 +4,7 @@
 // os componentes de renderização do card expansível de cada cliente.
 
 import { appState, findClient, persistAll } from "./state.js";
-import { elements, closeConfirmModal } from "./dom.js";
+import { elements, closeConfirmModal, setActiveView } from "./dom.js";
 import {
     createId,
     formatCpf,
@@ -22,6 +22,7 @@ import {
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { openDocumentPreview } from "./documents.js";
 import { confirmFinanceDelete } from "./finance.js";
+import { detectKitForClient, generateClientDocumentation, renderKitsTabs, renderClientDocumentsTab } from "./kits.js";
 import { renderAll } from "./main.js";
 
 export async function handleClientSubmit(event) {
@@ -93,6 +94,7 @@ export async function handleClientSubmit(event) {
             complement: elements.clientComplement.value.trim()
         },
         area: elements.clientArea.value,
+        serviceType: elements.clientServiceType.value,
         status: elements.clientStatus.value,
         notes: elements.clientNotes.value.trim(),
         photoData,
@@ -167,6 +169,18 @@ export function handleClientTableClick(event) {
     if (action === "preview-client-pdf") {
         openClientPdfPreview(button.dataset.id);
     }
+
+    if (action === "generate-docs") {
+        generateClientDocumentation(clientId);
+    }
+
+    if (action === "view-client-docs") {
+        appState.kitsSelectedClientId = clientId;
+        appState.activeKitsTab = "clientDocs";
+        setActiveView("kits");
+        renderKitsTabs();
+        renderClientDocumentsTab();
+    }
 }
 
 
@@ -191,6 +205,7 @@ export function fillClientForm(clientId) {
     elements.clientState.value = client.address?.state || "";
     elements.clientComplement.value = client.address?.complement || "";
     elements.clientArea.value = client.area;
+    elements.clientServiceType.value = client.serviceType || "";
     elements.clientStatus.value = client.status;
     elements.clientNotes.value = client.notes;
     updatePhotoPreview(client.photoData || "");
@@ -489,6 +504,8 @@ export function renderClients() {
 
                 ${createClientPdfBlock(client)}
 
+                ${createKitBlock(client)}
+
                 <div class="client-documents-block">
                     <div>
                         <strong>Processos judiciais vinculados</strong>
@@ -542,6 +559,53 @@ function createClientPdfBlock(client) {
                     </div>
                     <button class="action-button" type="button" data-action="preview-client-pdf" data-id="${client.id}">Visualizar</button>
                     <span class="document-badge">PDF</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+
+function createKitBlock(client) {
+    const kit = detectKitForClient(client);
+    const generatedCount = appState.clientDocuments.filter((doc) => doc.clientId === client.id).length;
+
+    if (!client.serviceType) {
+        return `
+            <div class="client-documents-block">
+                <div>
+                    <strong>Kit Jurídico</strong>
+                    <span>Informe o "Tipo de Prestação de Serviço" no cadastro para identificar o kit automaticamente.</span>
+                </div>
+            </div>
+        `;
+    }
+
+    if (!kit) {
+        return `
+            <div class="client-documents-block">
+                <div>
+                    <strong>Kit Jurídico</strong>
+                    <span>Nenhum kit cadastrado para "${escapeHTML(client.serviceType)}". Cadastre em Kits Jurídicos → Kits & Modelos.</span>
+                </div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="client-documents-block">
+            <div>
+                <strong>Kit Jurídico</strong>
+                <span>${escapeHTML(kit.name)} · ${kit.documentIds.length} documento(s) · ${generatedCount ? `${generatedCount} já gerado(s)` : "nenhum documento gerado ainda"}</span>
+            </div>
+            <div class="client-document-list">
+                <div class="client-document-item">
+                    <div>
+                        <strong>${escapeHTML(client.serviceType)}</strong>
+                        <span>Preenche os documentos do kit com os dados deste cliente</span>
+                    </div>
+                    <button class="action-button" type="button" data-action="generate-docs" data-id="${client.id}">📄 Gerar Documentação</button>
+                    ${generatedCount ? `<button class="action-button" type="button" data-action="view-client-docs" data-id="${client.id}">Ver documentos</button>` : ""}
                 </div>
             </div>
         </div>

@@ -6,6 +6,7 @@ import { appState, findClient } from "./state.js";
 import { elements } from "./dom.js";
 import { createId, todayISO, formatDate, escapeHTML } from "./utils.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
+import { buildPrintDocument } from "./print.js";
 import { renderAll } from "./main.js";
 
 export async function handleEventSubmit(event) {
@@ -30,6 +31,7 @@ export async function handleEventSubmit(event) {
         appState.events.unshift({
             id: createId(),
             ...payload,
+            done: false,
             createdAt: new Date().toISOString()
         });
     }
@@ -91,6 +93,7 @@ export function renderEvents() {
             </div>
             <div class="event-actions">
                 <span class="status-pill">${escapeHTML(eventItem.alert)}</span>
+                <button class="action-button complete" type="button" data-action="complete-event" data-id="${eventItem.id}">✓ CONCLUÍDO</button>
                 <button class="action-button" type="button" data-action="edit-event" data-id="${eventItem.id}">Editar</button>
                 <button class="action-button danger" type="button" data-action="delete-event" data-id="${eventItem.id}">Excluir</button>
             </div>
@@ -115,6 +118,24 @@ export function handleEventListClick(event) {
     if (button.dataset.action === "delete-event") {
         deleteEvent(eventId);
     }
+
+    if (button.dataset.action === "complete-event") {
+        completeEvent(eventId);
+    }
+}
+
+
+export async function completeEvent(eventId) {
+    appState.events = appState.events.map((item) => (
+        item.id === eventId ? { ...item, done: true, completedAt: new Date().toISOString() } : item
+    ));
+
+    if (appState.editingEventId === eventId) {
+        resetEventForm();
+    }
+
+    await saveStorage(STORAGE_KEYS.events, appState.events);
+    renderAll();
 }
 
 
@@ -156,8 +177,49 @@ export async function deleteEvent(eventId) {
 }
 
 
-export function getSortedEvents() {
-    return [...appState.events].sort((first, second) => (
+export function getSortedEvents({ includeDone = false } = {}) {
+    const source = includeDone ? appState.events : appState.events.filter((eventItem) => !eventItem.done);
+    return [...source].sort((first, second) => (
         `${first.date || ""}T${first.time || "00:00"}`.localeCompare(`${second.date || ""}T${second.time || "00:00"}`)
     ));
+}
+
+
+export function printCompletedEventsReport() {
+    const completedEvents = getSortedEvents({ includeDone: true })
+        .filter((eventItem) => eventItem.done)
+        .reverse();
+
+    let body;
+    if (!completedEvents.length) {
+        body = '<p style="color:#667085">Nenhum evento concluído até o momento.</p>';
+    } else {
+        const rows = completedEvents.map((eventItem) => {
+            const client = findClient(eventItem.clientId);
+            return `
+                <tr>
+                    <td>${escapeHTML(eventItem.type)}</td>
+                    <td>${client ? escapeHTML(client.name) : "-"}</td>
+                    <td>${formatDate(eventItem.date)} às ${escapeHTML(eventItem.time || "-")}</td>
+                    <td>${eventItem.completedAt ? new Date(eventItem.completedAt).toLocaleString("pt-BR") : "-"}</td>
+                    <td>${escapeHTML(eventItem.notes || "-")}</td>
+                </tr>
+            `;
+        }).join("");
+
+        body = `
+            <table>
+                <thead>
+                    <tr><th>Tipo</th><th>Cliente</th><th>Data/Hora do evento</th><th>Concluído em</th><th>Obs.</th></tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+    }
+
+    const win = window.open("", "_blank");
+    win.document.write(buildPrintDocument("Relatório de eventos concluídos", `${completedEvents.length} evento(s) concluído(s)`, body));
+    win.document.close();
+    win.focus();
+    win.print();
 }

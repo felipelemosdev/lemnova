@@ -56,7 +56,8 @@ import {
     handleEventSubmit,
     resetEventForm,
     handleEventListClick,
-    renderEvents
+    renderEvents,
+    printCompletedEventsReport
 } from "./agenda.js";
 
 import {
@@ -65,7 +66,9 @@ import {
     renderTasks,
     closeTaskReply,
     saveTaskReply,
-    printTaskReply
+    printTaskReply,
+    completeTaskFromReply,
+    printTasksReport
 } from "./tasks.js";
 
 import {
@@ -73,10 +76,36 @@ import {
     renderCalendarWidget,
     renderDate,
     startClock,
-    renderDashboardEvents
+    renderDashboardEvents,
+    handleNotifListClick,
+    closeNotificationDetail,
+    completeNotificationTask,
+    handleNotifDetailOverlayClick
 } from "./dashboard.js";
 
 import { printSection } from "./print.js";
+
+import {
+    seedKitsIfEmpty,
+    setKitsTab,
+    renderKitsTabs,
+    renderKits,
+    renderTemplates,
+    renderClientDocumentsTab,
+    handleKitSubmit,
+    resetKitForm,
+    handleKitListClick,
+    handleTemplateSubmit,
+    resetTemplateForm,
+    handleTemplateListClick,
+    handleKitsClientChange,
+    generateClientDocumentation,
+    handleClientDocListClick,
+    closeClientDocEditor,
+    saveClientDocEdit,
+    handleAttachmentUpload,
+    handleAttachmentListClick
+} from "./kits.js";
 
 // Módulo autocontido: só liga seus próprios listeners (busca de processo pelo número CNJ).
 import "./cnj.js";
@@ -88,9 +117,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     await migrateLegacyStorage();
     await loadState();
     await seedInitialData();
+    await seedKitsIfEmpty();
     await hydrateSession();
 
     showClientMode("list");
+    renderKitsTabs();
     renderAll();
     startClock();
 });
@@ -110,6 +141,21 @@ function bindEvents() {
             toggleNotifPanel();
         });
         document.addEventListener("click", handleOutsideNotifClick);
+    }
+    if (elements.notifList) {
+        elements.notifList.addEventListener("click", handleNotifListClick);
+    }
+    if (elements.notifDetailCloseButton) {
+        elements.notifDetailCloseButton.addEventListener("click", closeNotificationDetail);
+    }
+    if (elements.notifDetailCompleteButton) {
+        elements.notifDetailCompleteButton.addEventListener("click", completeNotificationTask);
+    }
+    if (elements.notifDetailOverlay) {
+        elements.notifDetailOverlay.addEventListener("click", handleNotifDetailOverlayClick);
+    }
+    if (elements.printTasksReportButton) {
+        elements.printTasksReportButton.addEventListener("click", printTasksReport);
     }
     if (elements.topbarPrintButton) {
         elements.topbarPrintButton.addEventListener("click", handleTopbarPrint);
@@ -138,6 +184,9 @@ function bindEvents() {
     elements.cancelEventEdit.addEventListener("click", resetEventForm);
     elements.eventSearch.addEventListener("input", renderEvents);
     elements.eventList.addEventListener("click", handleEventListClick);
+    if (elements.printCompletedEventsButton) {
+        elements.printCompletedEventsButton.addEventListener("click", printCompletedEventsReport);
+    }
     elements.documentForm.addEventListener("submit", handleDocumentSubmit);
     elements.documentList.addEventListener("click", handleDocumentListClick);
     elements.closeDocumentPreview.addEventListener("click", closeDocumentPreview);
@@ -158,6 +207,38 @@ function bindEvents() {
             elements.sidebar.classList.remove("open");
         });
     });
+
+    bindKitsEvents();
+}
+
+
+function bindKitsEvents() {
+    elements.kitsTabButtons.forEach((button) => {
+        button.addEventListener("click", () => setKitsTab(button.dataset.kitsTab));
+    });
+
+    elements.kitForm.addEventListener("submit", handleKitSubmit);
+    elements.cancelKitEdit.addEventListener("click", resetKitForm);
+    elements.kitList.addEventListener("click", handleKitListClick);
+
+    elements.templateForm.addEventListener("submit", handleTemplateSubmit);
+    elements.cancelTemplateEdit.addEventListener("click", resetTemplateForm);
+    elements.templateList.addEventListener("click", handleTemplateListClick);
+
+    elements.kitsClientSelect.addEventListener("change", handleKitsClientChange);
+    elements.generateDocsButton.addEventListener("click", () => {
+        if (appState.kitsSelectedClientId) {
+            generateClientDocumentation(appState.kitsSelectedClientId);
+        }
+    });
+    elements.clientDocList.addEventListener("click", handleClientDocListClick);
+
+    elements.attachmentInput.addEventListener("change", handleAttachmentUpload);
+    elements.attachmentList.addEventListener("click", handleAttachmentListClick);
+
+    elements.closeDocEditor.addEventListener("click", closeClientDocEditor);
+    document.getElementById("closeDocEditorSecondary").addEventListener("click", closeClientDocEditor);
+    elements.saveDocEditorButton.addEventListener("click", saveClientDocEdit);
 }
 
 
@@ -168,6 +249,10 @@ async function loadState() {
     appState.finance = await readStorage(STORAGE_KEYS.finance, []);
     appState.events = await readStorage(STORAGE_KEYS.events, []);
     appState.tasks = await readStorage(STORAGE_KEYS.tasks, []);
+    appState.kits = await readStorage(STORAGE_KEYS.kits, []);
+    appState.templates = await readStorage(STORAGE_KEYS.templates, []);
+    appState.clientDocuments = await readStorage(STORAGE_KEYS.clientDocuments, []);
+    appState.clientAttachments = await readStorage(STORAGE_KEYS.clientAttachments, []);
 }
 
 
@@ -285,6 +370,9 @@ export function renderAll() {
     renderEvents();
     renderDashboardEvents();
     renderTasks();
+    renderKits();
+    renderTemplates();
+    renderClientDocumentsTab();
 }
 
 
@@ -295,10 +383,16 @@ const PRINT_TARGETS = {
     documents: { sectionId: "documentListPanel", title: "Processos" },
     finance: { sectionId: "financeSection", title: "Financeiro" },
     agenda: { sectionId: "agendaSection", title: "Agenda" },
-    tasks: { sectionId: "taskListPanel", title: "Tarefas" }
+    tasks: { sectionId: "taskListPanel", title: "Tarefas" },
+    kits: { sectionId: "kitsSection", title: "Kits Jurídicos" }
 };
 
 function handleTopbarPrint() {
+    if (appState.currentView === "tasks") {
+        printTasksReport();
+        return;
+    }
+
     const target = PRINT_TARGETS[appState.currentView];
     if (!target) return;
     printSection(target.sectionId, target.title);
@@ -314,6 +408,8 @@ function handleGlobalKeydown(event) {
     closeConfirmModal();
     closeDocumentPreview();
     closeNotifPanel();
+    closeNotificationDetail();
+    closeClientDocEditor();
 }
 
 
@@ -324,4 +420,5 @@ function handleGlobalKeydown(event) {
 window.closeTaskReply = closeTaskReply;
 window.saveTaskReply = saveTaskReply;
 window.printTaskReply = printTaskReply;
+window.completeTaskFromReply = completeTaskFromReply;
 window.printSection = printSection;

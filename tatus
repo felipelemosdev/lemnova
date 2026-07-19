@@ -1,0 +1,5 @@
+[33me48a760[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m ajusta tela de login e layout
+[33mdb5f42c[m cria nova identidade visual da tela de login com Justitia
+[33m892299a[m feat: nova identidade visual da tela de login
+[33m659242e[m Configura ambiente para módulos ES e inicia ajustes da tela de login
+[33m4c87868[m refactor: modularizacao do javascript do frontend

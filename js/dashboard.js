@@ -7,6 +7,8 @@ import { elements } from "./dom.js";
 import { todayISO, formatDate, formatCurrency, escapeHTML } from "./utils.js";
 import { calculateFinanceTotals } from "./finance.js";
 import { getSortedEvents } from "./agenda.js";
+import { STORAGE_KEYS, saveStorage } from "./storage.js";
+import { renderAll } from "./main.js";
 
 export function renderCalendarWidget() {
     if (!elements.dashCalendarWidget) return;
@@ -94,16 +96,20 @@ export function renderNotifications() {
 
     const today = todayISO();
     const overdueTasks = appState.tasks.filter((t) => !t.done && t.dueDate && t.dueDate < today);
-    const todayEvents = appState.events.filter((eventItem) => eventItem.date === today);
+    const todayEvents = appState.events.filter((eventItem) => eventItem.date === today && !eventItem.done);
 
     const items = [
         ...overdueTasks.map((task) => ({
             kind: "overdue",
+            refKind: "task",
+            refId: task.id,
             title: `Tarefa atrasada: ${task.title}`,
             detail: `Prazo era ${formatDate(task.dueDate)}`
         })),
         ...todayEvents.map((eventItem) => ({
             kind: "event",
+            refKind: "event",
+            refId: eventItem.id,
             title: eventItem.type,
             detail: `Hoje às ${eventItem.time}`
         }))
@@ -121,17 +127,97 @@ export function renderNotifications() {
     }
 
     elements.notifList.innerHTML = items.map((item) => `
-        <div class="notif-item ${item.kind === "overdue" ? "overdue" : ""}">
+        <button type="button" class="notif-item ${item.kind === "overdue" ? "overdue" : ""}" data-kind="${item.refKind}" data-id="${item.refId}">
             <strong>${escapeHTML(item.title)}</strong>
             <span>${escapeHTML(item.detail)}</span>
-        </div>
+        </button>
     `).join("");
+}
+
+
+export function handleNotifListClick(event) {
+    const button = event.target.closest(".notif-item[data-id]");
+    if (!button) {
+        return;
+    }
+    openNotificationDetail(button.dataset.kind, button.dataset.id);
+}
+
+
+export function openNotificationDetail(kind, id) {
+    if (kind === "task") {
+        const task = appState.tasks.find((item) => item.id === id);
+        if (!task) return;
+
+        const client = findClient(task.clientId);
+        const priorityLabel = { low: "Baixa", medium: "Média", high: "Alta" }[task.priority] || task.priority;
+        const metaParts = [
+            client ? client.name : null,
+            task.responsible ? `Responsável: ${task.responsible}` : null,
+            task.dueDate ? `Prazo: ${formatDate(task.dueDate)}` : "Sem prazo",
+            `Prioridade: ${priorityLabel}`
+        ].filter(Boolean);
+
+        appState.activeNotifTaskId = task.id;
+        elements.notifDetailEyebrow.textContent = "Tarefa atrasada";
+        elements.notifDetailTitle.textContent = task.title;
+        elements.notifDetailText.textContent = [metaParts.join(" · "), task.description].filter(Boolean).join("\n\n");
+        elements.notifDetailCompleteButton.classList.toggle("hidden", task.done);
+    } else {
+        const eventItem = appState.events.find((item) => item.id === id);
+        if (!eventItem) return;
+
+        const client = findClient(eventItem.clientId);
+        const metaParts = [
+            client ? client.name : null,
+            `Hoje às ${eventItem.time}`,
+            eventItem.alert ? `Alerta: ${eventItem.alert}` : null
+        ].filter(Boolean);
+
+        appState.activeNotifTaskId = null;
+        elements.notifDetailEyebrow.textContent = "Evento de hoje";
+        elements.notifDetailTitle.textContent = eventItem.type;
+        elements.notifDetailText.textContent = [metaParts.join(" · "), eventItem.notes].filter(Boolean).join("\n\n");
+        elements.notifDetailCompleteButton.classList.add("hidden");
+    }
+
+    elements.notifPanel.classList.add("hidden");
+    elements.notifDetailOverlay.classList.remove("hidden");
+}
+
+
+export function closeNotificationDetail() {
+    appState.activeNotifTaskId = null;
+    elements.notifDetailOverlay.classList.add("hidden");
+}
+
+
+export async function completeNotificationTask() {
+    const taskId = appState.activeNotifTaskId;
+    if (!taskId) {
+        closeNotificationDetail();
+        return;
+    }
+
+    appState.tasks = appState.tasks.map((task) => (
+        task.id === taskId ? { ...task, done: true } : task
+    ));
+    await saveStorage(STORAGE_KEYS.tasks, appState.tasks);
+    closeNotificationDetail();
+    renderAll();
+}
+
+
+export function handleNotifDetailOverlayClick(event) {
+    if (event.target === elements.notifDetailOverlay) {
+        closeNotificationDetail();
+    }
 }
 
 
 export function renderSummary() {
     const today = todayISO();
-    const todayEvents = appState.events.filter((eventItem) => eventItem.date === today);
+    const todayEvents = appState.events.filter((eventItem) => eventItem.date === today && !eventItem.done);
     const nextEvent = getSortedEvents().find((eventItem) => eventItem.date >= today);
 
     if (elements.calendarToday) {

@@ -172,3 +172,63 @@ export function isAllowedImage(file) {
 export function isAllowedPdf(file) {
     return file.type === "application/pdf" || getExtension(file.name) === ".pdf";
 }
+
+
+// Usado pelos anexos livres do cadastro do cliente (módulo Kits Jurídicos): aceita
+// PDF, DOCX e imagens (JPG/PNG).
+export function isAllowedAttachment(file) {
+    const allowedTypes = [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "image/jpeg",
+        "image/png"
+    ];
+    const allowedExtensions = [".pdf", ".docx", ".jpg", ".jpeg", ".png"];
+    const extension = getExtension(file.name);
+    return allowedTypes.includes(file.type) || allowedExtensions.includes(extension);
+}
+
+
+export function getAttachmentLabel(fileType, fileName = "") {
+    const normalizedType = String(fileType || "").toLowerCase();
+    const extension = getExtension(fileName).replace(".", "");
+
+    if (normalizedType.includes("pdf") || extension === "pdf") {
+        return "PDF";
+    }
+
+    if (normalizedType.includes("wordprocessingml") || extension === "docx") {
+        return "DOCX";
+    }
+
+    if (normalizedType.includes("png") || extension === "png") {
+        return "PNG";
+    }
+
+    return "JPG";
+}
+
+
+// Gera um nome de arquivo seguro (sem acentos/caracteres especiais) para downloads,
+// usado ao exportar documentos gerados pelo módulo de Kits Jurídicos.
+export function slugifyFileName(value) {
+    return String(value || "documento")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase() || "documento";
+}
+
+
+// Dispara o download de um Blob no navegador (sem depender de backend).
+export function downloadBlob(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}

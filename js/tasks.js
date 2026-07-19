@@ -4,7 +4,7 @@
 
 import { appState, findClient } from "./state.js";
 import { elements } from "./dom.js";
-import { createId, formatDate, escapeHTML, fileToDataURL } from "./utils.js";
+import { createId, todayISO, formatDate, escapeHTML, fileToDataURL } from "./utils.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { buildPrintDocument } from "./print.js";
 import { renderDashboardTasks } from "./dashboard.js";
@@ -66,7 +66,7 @@ export function renderTasks() {
             <div class="event-actions">
                 <span class="task-pill ${task.priority}">${escapeHTML(priorityLabel)}</span>
                 <button class="action-button reply" type="button" data-action="reply-task" data-id="${task.id}">💬 Responder${task.replies && task.replies.length ? ` (${task.replies.length})` : ""}</button>
-                <button class="action-button" type="button" data-action="toggle-task" data-id="${task.id}">${task.done ? "Reabrir" : "Concluir"}</button>
+                <button class="action-button ${task.done ? "" : "complete"}" type="button" data-action="toggle-task" data-id="${task.id}">${task.done ? "↺ Reabrir" : "✓ CONCLUÍDO"}</button>
                 <button class="action-button danger" type="button" data-action="delete-task" data-id="${task.id}">Excluir</button>
             </div>
         `;
@@ -114,6 +114,9 @@ export function openTaskReply(taskId) {
     elements.replyText.value = "";
     elements.replyPdf.value = "";
     elements.replyPdfName.textContent = "";
+    if (elements.taskReplyCompleteButton) {
+        elements.taskReplyCompleteButton.classList.toggle("hidden", task.done);
+    }
 
     renderReplyHistory(task);
     elements.taskReplyOverlay.classList.remove("hidden");
@@ -227,6 +230,79 @@ export function printTaskReply() {
 
     const win = window.open("", "_blank");
     win.document.write(buildPrintDocument(task.title, subtitle, body));
+    win.document.close();
+    win.focus();
+    win.print();
+}
+
+
+export async function completeTaskFromReply() {
+    const taskId = appState.activeReplyTaskId;
+    if (!taskId) {
+        closeTaskReply();
+        return;
+    }
+
+    appState.tasks = appState.tasks.map((task) => (
+        task.id === taskId ? { ...task, done: true } : task
+    ));
+
+    await saveStorage(STORAGE_KEYS.tasks, appState.tasks);
+    closeTaskReply();
+    renderAll();
+}
+
+
+export function printTasksReport() {
+    const today = todayISO();
+    const overdue = appState.tasks.filter((task) => !task.done && task.dueDate && task.dueDate < today);
+    const onTime = appState.tasks.filter((task) => !task.done && (!task.dueDate || task.dueDate >= today));
+    const done = appState.tasks.filter((task) => task.done);
+
+    const priorityLabels = { low: "Baixa", medium: "Média", high: "Alta" };
+
+    const buildTable = (list, emptyMessage) => {
+        if (!list.length) {
+            return `<p style="color:#667085;font-size:0.82rem">${emptyMessage}</p>`;
+        }
+
+        const rows = list.map((task) => {
+            const client = findClient(task.clientId);
+            const priorityLabel = priorityLabels[task.priority] || task.priority;
+            return `
+                <tr>
+                    <td>${escapeHTML(task.title)}</td>
+                    <td>${escapeHTML(task.responsible || "-")}</td>
+                    <td>${client ? escapeHTML(client.name) : "-"}</td>
+                    <td>${task.dueDate ? formatDate(task.dueDate) : "Sem prazo"}</td>
+                    <td>${escapeHTML(priorityLabel)}</td>
+                </tr>
+            `;
+        }).join("");
+
+        return `
+            <table>
+                <thead>
+                    <tr><th>Título</th><th>Responsável</th><th>Cliente</th><th>Prazo</th><th>Prioridade</th></tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+    };
+
+    const body = `
+        <h2 style="color:#b42318;font-size:1rem;margin:18px 0 8px">Atrasadas (${overdue.length})</h2>
+        ${buildTable(overdue, "Nenhuma tarefa atrasada.")}
+
+        <h2 style="color:#b54708;font-size:1rem;margin:18px 0 8px">No prazo (${onTime.length})</h2>
+        ${buildTable(onTime, "Nenhuma tarefa em aberto.")}
+
+        <h2 style="color:#027a48;font-size:1rem;margin:18px 0 8px">Concluídas (${done.length})</h2>
+        ${buildTable(done, "Nenhuma tarefa concluída.")}
+    `;
+
+    const win = window.open("", "_blank");
+    win.document.write(buildPrintDocument("Relatório de tarefas", "Separado por status: atrasadas, no prazo e concluídas", body));
     win.document.close();
     win.focus();
     win.print();
