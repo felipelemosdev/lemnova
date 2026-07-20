@@ -49,7 +49,6 @@ export function cacheElements() {
     elements.clientMaritalStatus = document.getElementById("clientMaritalStatus");
     elements.clientProfession = document.getElementById("clientProfession");
     elements.clientBenefit = document.getElementById("clientBenefit");
-    elements.clientContractType = document.getElementById("clientContractType");
     elements.clientCep = document.getElementById("clientCep");
     elements.clientCepMessage = document.getElementById("clientCepMessage");
     elements.clientStreet = document.getElementById("clientStreet");
@@ -69,8 +68,8 @@ export function cacheElements() {
     elements.showClientList = document.getElementById("showClientList");
     elements.registeredClientsPanel = document.getElementById("registeredClientsPanel");
     elements.clientSearch = document.getElementById("clientSearch");
+    elements.clientBenefitFilter = document.getElementById("clientBenefitFilter");
     elements.clientSortOrder = document.getElementById("clientSortOrder");
-    elements.clientContractTypeFilter = document.getElementById("clientContractTypeFilter");
     elements.clientTableBody = document.getElementById("clientTableBody");
     elements.clientEmptyState = document.getElementById("clientEmptyState");
     elements.dashClientCount = document.getElementById("dashClientCount");
@@ -112,11 +111,10 @@ export function cacheElements() {
     elements.financeForm = document.getElementById("financeForm");
     elements.financeType = document.getElementById("financeType");
     elements.financeCategory = document.getElementById("financeCategory");
+    elements.financeContractType = document.getElementById("financeContractType");
     elements.financeAmount = document.getElementById("financeAmount");
     elements.financeDate = document.getElementById("financeDate");
     elements.financeClient = document.getElementById("financeClient");
-    elements.financeContractType = document.getElementById("financeContractType");
-    elements.financeContractTypeFilter = document.getElementById("financeContractTypeFilter");
     elements.financeDescription = document.getElementById("financeDescription");
     elements.financeTableBody = document.getElementById("financeTableBody");
     elements.financeEmptyState = document.getElementById("financeEmptyState");
@@ -170,10 +168,6 @@ export function cacheElements() {
     elements.contractOverlay = document.getElementById("contractOverlay");
     elements.contractModalSubtitle = document.getElementById("contractModalSubtitle");
     elements.contractTemplateSelect = document.getElementById("contractTemplateSelect");
-    elements.contractPdfUploadGroup = document.getElementById("contractPdfUploadGroup");
-    elements.contractPdfInput = document.getElementById("contractPdfInput");
-    elements.contractPdfCurrentInfo = document.getElementById("contractPdfCurrentInfo");
-    elements.contractPdfRemoveButton = document.getElementById("contractPdfRemoveButton");
     elements.contractModalWarning = document.getElementById("contractModalWarning");
     elements.contractCancelButton = document.getElementById("contractCancelButton");
     elements.contractGenerateButton = document.getElementById("contractGenerateButton");

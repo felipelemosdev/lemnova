@@ -5,7 +5,7 @@
 
 import { appState, findClient } from "./state.js";
 import { elements, closeConfirmModal } from "./dom.js";
-import { createId, todayISO, formatCurrency, formatDate, escapeHTML, getContractTypeLabel } from "./utils.js";
+import { createId, todayISO, formatCurrency, formatDate, escapeHTML } from "./utils.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { renderAll } from "./main.js";
 
@@ -16,10 +16,10 @@ export async function handleFinanceSubmit(event) {
         id: createId(),
         type: elements.financeType.value,
         category: elements.financeCategory.value,
+        contractType: elements.financeContractType ? elements.financeContractType.value : "",
         amount: Number(elements.financeAmount.value),
         date: elements.financeDate.value,
         clientId: elements.financeClient.value,
-        contractType: elements.financeContractType ? elements.financeContractType.value : "",
         description: elements.financeDescription.value.trim(),
         createdAt: new Date().toISOString()
     });
@@ -28,38 +28,31 @@ export async function handleFinanceSubmit(event) {
     elements.financeForm.reset();
     elements.financeType.value = "Entrada";
     elements.financeCategory.value = "Honorário";
+    if (elements.financeContractType) {
+        elements.financeContractType.value = "";
+    }
     elements.financeDate.value = todayISO();
     renderAll();
 }
 
 
 export function renderFinance() {
-    const contractTypeFilter = elements.financeContractTypeFilter ? elements.financeContractTypeFilter.value : "";
-    const entries = appState.finance.filter((entry) => (
-        !contractTypeFilter || entry.contractType === contractTypeFilter
-    ));
-
     elements.financeTableBody.innerHTML = "";
-    elements.financeEmptyState.classList.toggle("hidden", entries.length > 0);
-    if (!entries.length && appState.finance.length) {
-        elements.financeEmptyState.textContent = "Nenhuma movimentação para este tipo de contrato.";
-    } else {
-        elements.financeEmptyState.textContent = "Nenhuma movimentação cadastrada.";
-    }
+    elements.financeEmptyState.classList.toggle("hidden", appState.finance.length > 0);
 
-    entries.forEach((entry) => {
+    appState.finance.forEach((entry) => {
         const client = findClient(entry.clientId);
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>${createTypePill(entry.type)}</td>
             <td>${escapeHTML(entry.category || inferFinanceCategory(entry))}</td>
+            <td>${entry.contractType ? `<span class="status-pill">${escapeHTML(entry.contractType)}</span>` : "—"}</td>
             <td>
                 <div class="transaction-cell">
                     <strong>${escapeHTML(entry.description)}</strong>
                     <span>${client ? escapeHTML(client.name) : "Sem cliente"}</span>
                 </div>
             </td>
-            <td>${entry.contractType ? `<span class="status-pill">${escapeHTML(getContractTypeLabel(entry.contractType))}</span>` : "-"}</td>
             <td>${formatCurrency(entry.amount)}</td>
             <td>${formatDate(entry.date)}</td>
             <td><button class="action-button danger" type="button" data-action="delete-finance" data-id="${entry.id}">Excluir</button></td>

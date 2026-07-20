@@ -428,34 +428,21 @@
                                 </select>
                             </label>
                             <label class="field">
-                                <span>Tipo de Benefício</span>
+                                <span>Tipo de contrato / serviço</span>
 
                                 <select id="clientBenefit">
                                     <option value="">Selecione</option>
-                                    <option value="BPC Idoso">BPC Idoso</option>
-                                    <option value="BPC Deficiente">BPC Deficiente</option>
-                                    <option value="Salário-Maternidade">Salário-Maternidade</option>
-                                    <option value="Auxílio-Doença">Auxílio-Doença</option>
-                                    <option value="Acidente de Trabalho">Acidente de Trabalho</option>
                                     <option value="Aposentadoria">Aposentadoria</option>
-                                    </select>
-                            </label>
-
-                            <label class="field">
-                                <span>Tipo de contrato</span>
-                                <select id="clientContractType">
-                                    <option value="">Selecione</option>
-                                    <option value="aposentadoria">Aposentadoria</option>
-                                    <option value="auxilio_doenca">Auxílio Doença</option>
-                                    <option value="auxilio_acidente">Auxílio Acidente</option>
-                                    <option value="doenca_ocupacional">Doença Ocupacional</option>
-                                    <option value="pensao_morte">Pensão por Morte</option>
-                                    <option value="trabalhista">Trabalhista</option>
-                                    <option value="maternidade">Maternidade</option>
-                                    <option value="majoracao">Majoração</option>
-                                    <option value="loas_idoso">LOAS Idoso</option>
-                                    <option value="loas_deficiente">LOAS Deficiente</option>
-                                    <option value="consumidor">Consumidor</option>
+                                    <option value="Auxílio-Doença">Auxílio-Doença</option>
+                                    <option value="Auxílio-Acidente">Auxílio-Acidente</option>
+                                    <option value="Doença Ocupacional">Doença Ocupacional</option>
+                                    <option value="Pensão por Morte">Pensão por Morte</option>
+                                    <option value="Trabalhista">Trabalhista</option>
+                                    <option value="Maternidade">Maternidade</option>
+                                    <option value="Majoração">Majoração</option>
+                                    <option value="LOAS Idoso">LOAS Idoso</option>
+                                    <option value="LOAS Deficiente">LOAS Deficiente</option>
+                                    <option value="Consumidor">Consumidor</option>
                                 </select>
                             </label>
 
@@ -499,6 +486,24 @@
                                 </label>
 
                                 <label class="field list-controls-sort">
+                                    <span>Filtrar por tipo de contrato</span>
+                                    <select id="clientBenefitFilter">
+                                        <option value="">Todos os tipos</option>
+                                        <option value="Aposentadoria">Aposentadoria</option>
+                                        <option value="Auxílio-Doença">Auxílio-Doença</option>
+                                        <option value="Auxílio-Acidente">Auxílio-Acidente</option>
+                                        <option value="Doença Ocupacional">Doença Ocupacional</option>
+                                        <option value="Pensão por Morte">Pensão por Morte</option>
+                                        <option value="Trabalhista">Trabalhista</option>
+                                        <option value="Maternidade">Maternidade</option>
+                                        <option value="Majoração">Majoração</option>
+                                        <option value="LOAS Idoso">LOAS Idoso</option>
+                                        <option value="LOAS Deficiente">LOAS Deficiente</option>
+                                        <option value="Consumidor">Consumidor</option>
+                                    </select>
+                                </label>
+
+                                <label class="field list-controls-sort">
                                     <span>Ordenar / imprimir por</span>
                                     <select id="clientSortOrder">
                                         <option value="name-asc">Nome (A → Z)</option>
@@ -506,24 +511,6 @@
                                         <option value="recent">Mais recentes</option>
                                         <option value="oldest">Mais antigos</option>
                                         <option value="status">Status</option>
-                                    </select>
-                                </label>
-
-                                <label class="field list-controls-sort">
-                                    <span>Filtrar por tipo de contrato</span>
-                                    <select id="clientContractTypeFilter">
-                                        <option value="">Todos os tipos</option>
-                                        <option value="aposentadoria">Aposentadoria</option>
-                                        <option value="auxilio_doenca">Auxílio Doença</option>
-                                        <option value="auxilio_acidente">Auxílio Acidente</option>
-                                        <option value="doenca_ocupacional">Doença Ocupacional</option>
-                                        <option value="pensao_morte">Pensão por Morte</option>
-                                        <option value="trabalhista">Trabalhista</option>
-                                        <option value="maternidade">Maternidade</option>
-                                        <option value="majoracao">Majoração</option>
-                                        <option value="loas_idoso">LOAS Idoso</option>
-                                        <option value="loas_deficiente">LOAS Deficiente</option>
-                                        <option value="consumidor">Consumidor</option>
                                     </select>
                                 </label>
                             </div>
@@ -664,6 +651,24 @@
                             </label>
 
                             <label class="field">
+                                <span>Tipo de contrato</span>
+                                <select id="financeContractType">
+                                    <option value="">Não vinculado</option>
+                                    <option value="Aposentadoria">Aposentadoria</option>
+                                    <option value="Auxílio-Doença">Auxílio-Doença</option>
+                                    <option value="Auxílio-Acidente">Auxílio-Acidente</option>
+                                    <option value="Doença Ocupacional">Doença Ocupacional</option>
+                                    <option value="Pensão por Morte">Pensão por Morte</option>
+                                    <option value="Trabalhista">Trabalhista</option>
+                                    <option value="Maternidade">Maternidade</option>
+                                    <option value="Majoração">Majoração</option>
+                                    <option value="LOAS Idoso">LOAS Idoso</option>
+                                    <option value="LOAS Deficiente">LOAS Deficiente</option>
+                                    <option value="Consumidor">Consumidor</option>
+                                </select>
+                            </label>
+
+                            <label class="field">
                                 <span>Valor</span>
                                 <input id="financeAmount" type="number" min="0" step="0.01" placeholder="0,00" required>
                             </label>
@@ -677,24 +682,6 @@
                                 <span>Cliente</span>
                                 <select id="financeClient">
                                     <option value="">Sem cliente vinculado</option>
-                                </select>
-                            </label>
-
-                            <label class="field">
-                                <span>Tipo de contrato</span>
-                                <select id="financeContractType">
-                                    <option value="">Não vinculado</option>
-                                    <option value="aposentadoria">Aposentadoria</option>
-                                    <option value="auxilio_doenca">Auxílio Doença</option>
-                                    <option value="auxilio_acidente">Auxílio Acidente</option>
-                                    <option value="doenca_ocupacional">Doença Ocupacional</option>
-                                    <option value="pensao_morte">Pensão por Morte</option>
-                                    <option value="trabalhista">Trabalhista</option>
-                                    <option value="maternidade">Maternidade</option>
-                                    <option value="majoracao">Majoração</option>
-                                    <option value="loas_idoso">LOAS Idoso</option>
-                                    <option value="loas_deficiente">LOAS Deficiente</option>
-                                    <option value="consumidor">Consumidor</option>
                                 </select>
                             </label>
 
@@ -714,34 +701,14 @@
                                 </div>
                             </div>
 
-                            <div class="list-controls">
-                                <label class="field list-controls-sort">
-                                    <span>Filtrar por tipo de contrato</span>
-                                    <select id="financeContractTypeFilter">
-                                        <option value="">Todos os tipos</option>
-                                        <option value="aposentadoria">Aposentadoria</option>
-                                        <option value="auxilio_doenca">Auxílio Doença</option>
-                                        <option value="auxilio_acidente">Auxílio Acidente</option>
-                                        <option value="doenca_ocupacional">Doença Ocupacional</option>
-                                        <option value="pensao_morte">Pensão por Morte</option>
-                                        <option value="trabalhista">Trabalhista</option>
-                                        <option value="maternidade">Maternidade</option>
-                                        <option value="majoracao">Majoração</option>
-                                        <option value="loas_idoso">LOAS Idoso</option>
-                                        <option value="loas_deficiente">LOAS Deficiente</option>
-                                        <option value="consumidor">Consumidor</option>
-                                    </select>
-                                </label>
-                            </div>
-
                             <div class="table-wrap">
                                 <table>
                                     <thead>
                                         <tr>
                                             <th>Tipo</th>
                                             <th>Categoria</th>
+                                            <th>Tipo de contrato</th>
                                             <th>Descrição</th>
-                                            <th>Contrato</th>
                                             <th>Valor</th>
                                             <th>Data</th>
                                             <th>Ações</th>
@@ -996,16 +963,6 @@
                         <select id="contractTemplateSelect"></select>
                     </label>
 
-                    <div id="contractPdfUploadGroup" class="hidden" style="margin-top:14px;padding:12px;border:1px dashed var(--color-border,#d8dce6);border-radius:8px">
-                        <p style="font-weight:600;font-size:0.85rem;margin:0 0 6px">Este modelo ainda não tem cláusulas cadastradas no sistema</p>
-                        <p style="color:var(--color-muted);font-size:0.8rem;margin:0 0 10px">Anexe o PDF original deste contrato (pode ter várias páginas). Ele é salvo uma única vez e reaproveitado para todos os clientes deste tipo, preservando 100% do texto original.</p>
-                        <label class="field">
-                            <span>Modelo em PDF</span>
-                            <input id="contractPdfInput" type="file" accept=".pdf,application/pdf">
-                        </label>
-                        <p id="contractPdfCurrentInfo" style="font-size:0.8rem;color:var(--color-muted);margin:8px 0"></p>
-                        <button id="contractPdfRemoveButton" class="action-button danger hidden" type="button">Remover PDF anexado</button>
-                    </div>
                     <p id="contractModalWarning" class="hidden" style="color:var(--color-danger);font-size:0.8rem;margin-top:10px"></p>
                 </div>
                 <div class="modal-actions">

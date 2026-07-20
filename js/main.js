@@ -84,13 +84,7 @@ import {
 } from "./dashboard.js";
 
 import { printSection } from "./print.js";
-import {
-    closeContractModal,
-    generateAndPrintContract,
-    updateContractVariantVisibility,
-    handleContractPdfUpload,
-    handleContractPdfRemove
-} from "./contract.js";
+import { closeContractModal, generateAndPrintContract, refreshContractModalWarning } from "./contract.js";
 
 // Módulo autocontido: só liga seus próprios listeners (busca de processo pelo número CNJ).
 import "./cnj.js";
@@ -144,16 +138,10 @@ function bindEvents() {
         elements.contractCancelButton.addEventListener("click", closeContractModal);
     }
     if (elements.contractTemplateSelect) {
-        elements.contractTemplateSelect.addEventListener("change", updateContractVariantVisibility);
+        elements.contractTemplateSelect.addEventListener("change", refreshContractModalWarning);
     }
     if (elements.contractGenerateButton) {
         elements.contractGenerateButton.addEventListener("click", generateAndPrintContract);
-    }
-    if (elements.contractPdfInput) {
-        elements.contractPdfInput.addEventListener("change", handleContractPdfUpload);
-    }
-    if (elements.contractPdfRemoveButton) {
-        elements.contractPdfRemoveButton.addEventListener("click", handleContractPdfRemove);
     }
     if (elements.contractOverlay) {
         elements.contractOverlay.addEventListener("click", (event) => {
@@ -176,10 +164,10 @@ function bindEvents() {
         elements.clientState.value = elements.clientState.value.toUpperCase();
     });
     elements.clientSearch.addEventListener("input", renderClients);
-    elements.clientSortOrder.addEventListener("change", renderClients);
-    if (elements.clientContractTypeFilter) {
-        elements.clientContractTypeFilter.addEventListener("change", renderClients);
+    if (elements.clientBenefitFilter) {
+        elements.clientBenefitFilter.addEventListener("change", renderClients);
     }
+    elements.clientSortOrder.addEventListener("change", renderClients);
     elements.clientTableBody.addEventListener("click", handleClientTableClick);
     elements.dashAddEventButton.addEventListener("click", () => {
         resetEventForm();
@@ -199,9 +187,6 @@ function bindEvents() {
     elements.documentPreviewOverlay.addEventListener("click", handlePreviewOverlayClick);
     elements.financeForm.addEventListener("submit", handleFinanceSubmit);
     elements.financeTableBody.addEventListener("click", handleFinanceTableClick);
-    if (elements.financeContractTypeFilter) {
-        elements.financeContractTypeFilter.addEventListener("change", renderFinance);
-    }
     document.addEventListener("keydown", handleGlobalKeydown);
     elements.taskForm.addEventListener("submit", handleTaskSubmit);
     elements.taskList.addEventListener("click", handleTaskListClick);
@@ -226,7 +211,6 @@ async function loadState() {
     appState.finance = await readStorage(STORAGE_KEYS.finance, []);
     appState.events = await readStorage(STORAGE_KEYS.events, []);
     appState.tasks = await readStorage(STORAGE_KEYS.tasks, []);
-    appState.contractPdfTemplates = await readStorage(STORAGE_KEYS.contractPdfTemplates, []);
 }
 
 

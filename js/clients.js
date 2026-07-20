@@ -17,9 +17,7 @@ import {
     escapeHTML,
     fileToDataURL,
     isAllowedImage,
-    isAllowedPdf,
-    CONTRACT_TYPES,
-    getContractTypeLabel
+    isAllowedPdf
 } from "./utils.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { openDocumentPreview } from "./documents.js";
@@ -101,7 +99,6 @@ export async function handleClientSubmit(event) {
         },
         area: elements.clientArea.value,
         benefit: elements.clientBenefit ? elements.clientBenefit.value : "",
-        contractType: elements.clientContractType ? elements.clientContractType.value : "",
         status: elements.clientStatus.value,
         notes: elements.clientNotes.value.trim(),
         photoData,
@@ -210,9 +207,6 @@ export function fillClientForm(clientId) {
     elements.clientArea.value = client.area;
     if (elements.clientBenefit) {
         elements.clientBenefit.value = client.benefit || "";
-    }
-    if (elements.clientContractType) {
-        elements.clientContractType.value = client.contractType || "";
     }
     elements.clientStatus.value = client.status;
     elements.clientNotes.value = client.notes;
@@ -462,14 +456,15 @@ export function sortClients(clients, order) {
 
 export function renderClients() {
     const searchTerm = elements.clientSearch.value.trim().toLowerCase();
+    const benefitFilter = elements.clientBenefitFilter ? elements.clientBenefitFilter.value : "";
     const sortOrder = elements.clientSortOrder ? elements.clientSortOrder.value : "name-asc";
-    const contractTypeFilter = elements.clientContractTypeFilter ? elements.clientContractTypeFilter.value : "";
     const filteredClients = sortClients(
         appState.clients.filter((client) => {
-            const content = `${client.name} ${client.document} ${client.phone}`.toLowerCase();
-            const matchesSearch = content.includes(searchTerm);
-            const matchesContractType = !contractTypeFilter || client.contractType === contractTypeFilter;
-            return matchesSearch && matchesContractType;
+            if (benefitFilter && client.benefit !== benefitFilter) {
+                return false;
+            }
+            const content = `${client.name} ${client.document} ${client.phone} ${client.benefit || ""}`.toLowerCase();
+            return content.includes(searchTerm);
         }),
         sortOrder
     );
@@ -489,7 +484,7 @@ export function renderClients() {
                 ${createClientAvatar(client)}
                 <div class="client-profile-title">
                     <strong>${escapeHTML(client.name)}</strong>
-                    <span>CPF ${escapeHTML(formatCpf(client.document))} · ${escapeHTML(client.status || "Sem status")}${client.contractType ? ` · <span class="status-pill">${escapeHTML(getContractTypeLabel(client.contractType))}</span>` : ""}</span>
+                    <span>CPF ${escapeHTML(formatCpf(client.document))} · ${escapeHTML(client.status || "Sem status")}</span>
                 </div>
                 <div class="table-actions">
                     <button class="action-button" type="button" data-action="toggle-client" data-id="${client.id}">${isOpen ? "Fechar" : "Abrir"}</button>
@@ -507,7 +502,6 @@ export function renderClients() {
                     ${createDetailItem("Estado civil", client.maritalStatus)}
                     ${createDetailItem("Profissão", client.profession)}
                     ${createDetailItem("Benefício", client.benefit)}
-                    ${createDetailItem("Tipo de contrato", client.contractType ? getContractTypeLabel(client.contractType) : "Não definido")}
                     ${createDetailItem("Telefone", client.phone)}
                     ${createDetailItem("Email", client.email)}
                     ${createDetailItem("Senha INSS", client.inssPassword || "Não informado")}
