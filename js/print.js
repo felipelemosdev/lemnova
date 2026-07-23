@@ -26,15 +26,15 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
                 color-adjust: exact !important;
             }
 
-            body {
-                font-family: Georgia, "Times New Roman", serif;
-                color: #1c2333;
-                margin: 0;
-                padding: 0 26px 60px;
-                font-size: 0.86rem;
-                line-height: 1.35;
-                position: relative;
-            }
+          body {
+    font-family: Aptos, Arial, sans-serif;
+    color: #1c2333;
+    margin: 0;
+    padding: 0 26px 60px;
+    font-size: 0.86rem;
+    line-height: 1.35;
+    position: relative;
+}
 
             .watermark {
                 position: fixed;
