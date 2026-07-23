@@ -10,7 +10,7 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
     return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
         <title>${escapeHTML(title)} — Lemnova</title>
         <style>
-            @page { margin: 16mm 14mm 20mm; }
+            @page { margin: 1mm 1mm 1mm; }
 
             * { box-sizing: border-box; }
 
@@ -27,8 +27,8 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
             }
 
           body {
-    font-family: Aptos, Arial, sans-serif;
-    color: #1c2333;
+    font-family: Aptos, Aptos Display, sans-serif;
+    color: #00040c;
     margin: 0;
     padding: 0 26px 60px;
     font-size: 0.86rem;
@@ -52,7 +52,7 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
             }
 
             .print-header {
-                background: #10203a;
+                background: #030c19;
                 color: #ffffff;
                 margin: 0 -26px 0;
                 padding: 8px 26px;
@@ -76,7 +76,7 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
                 height: 26px;
                 border-radius: 50%;
                 background: #d4af37;
-                color: #10203a;
+                color: #fbfdfe;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -105,7 +105,7 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
             .print-header .doc-meta {
                 text-align: right;
                 font-size: 0.62rem;
-                color: #cbd5e1;
+                color: #00050b;
                 line-height: 1.4;
             }
 
@@ -117,8 +117,8 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
                 bottom: 0;
                 left: 0;
                 right: 0;
-                background: #10203a;
-                color: #ffffff;
+                background: #f0f1f3;
+                color: #0a0000;
                 border-top: 1px solid #d4af37;
                 padding: 7px 26px;
                 font-size: 0.68rem;
