@@ -84,7 +84,7 @@ import {
 } from "./dashboard.js";
 
 import { printSection } from "./print.js";
-import { closeContractModal, generateAndPrintContract, refreshContractModalWarning } from "./contract.js";
+import { closeContractModal, generateAndPrintContract, refreshContractModalWarning, handleContractTemplateChange } from "./contract.js";
 
 // Módulo autocontido: só liga seus próprios listeners (busca de processo pelo número CNJ).
 import "./cnj.js";
@@ -138,7 +138,10 @@ function bindEvents() {
         elements.contractCancelButton.addEventListener("click", closeContractModal);
     }
     if (elements.contractTemplateSelect) {
-        elements.contractTemplateSelect.addEventListener("change", refreshContractModalWarning);
+        elements.contractTemplateSelect.addEventListener("change", handleContractTemplateChange);
+    }
+    if (elements.contractHonorariosSelect) {
+        elements.contractHonorariosSelect.addEventListener("change", refreshContractModalWarning);
     }
     if (elements.contractGenerateButton) {
         elements.contractGenerateButton.addEventListener("click", generateAndPrintContract);

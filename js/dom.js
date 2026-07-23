@@ -168,6 +168,7 @@ export function cacheElements() {
     elements.contractOverlay = document.getElementById("contractOverlay");
     elements.contractModalSubtitle = document.getElementById("contractModalSubtitle");
     elements.contractTemplateSelect = document.getElementById("contractTemplateSelect");
+    elements.contractHonorariosSelect = document.getElementById("contractHonorariosSelect");
     elements.contractModalWarning = document.getElementById("contractModalWarning");
     elements.contractCancelButton = document.getElementById("contractCancelButton");
     elements.contractGenerateButton = document.getElementById("contractGenerateButton");
