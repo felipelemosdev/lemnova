@@ -10,7 +10,14 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
     return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
         <title>${escapeHTML(title)} — Lemnova</title>
         <style>
-            @page { margin: 1mm 1mm 1mm; }
+            @page {
+            size: ${PRINT_CONFIG.paper} ${PRINT_CONFIG.orientation};
+            margin:
+            ${PRINT_CONFIG.margins.top}
+            ${PRINT_CONFIG.margins.right}
+            ${PRINT_CONFIG.margins.bottom}
+            ${PRINT_CONFIG.margins.left};
+}
 
             * { box-sizing: border-box; }
 
@@ -30,7 +37,7 @@ export function buildPrintDocument(title, subtitle, bodyHtml) {
     font-family: Aptos, Aptos Display, sans-serif;
     color: #00040c;
     margin: 0;
-    padding: 0 26px 60px;
+    padding: 0;
     font-size: 0.86rem;
     line-height: 1.35;
     position: relative;

@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
     finance: "juresone.finance",
     events: "juresone.events",
     tasks: "juresone.tasks",
+    installments: "juresone.installments",
     kits: "juresone.kits",
     templates: "juresone.templates",
     clientDocuments: "juresone.clientDocuments",
@@ -24,18 +25,22 @@ export const STORAGE_KEYS = {
 // versão 3: adiciona a store de modelos de contrato em PDF (contractPdfTemplates), usada
 // pelos tipos de contrato que ainda não têm cláusulas próprias cadastradas em contract.js —
 // o usuário anexa o PDF original do contrato e ele é reaproveitado para todos os clientes
-// daquele tipo. O bloco "upgradeneeded" cria apenas as stores que ainda não existirem,
-// então bancos já abertos em versões anteriores são atualizados automaticamente sem perda
-// de dados.
+// daquele tipo.
+// versão 4: adiciona a store de parcelas de contrato (installments), usada pelo módulo de
+// Contratos para controlar vencimentos gerados automaticamente quando um cliente é
+// ativado. O bloco "upgradeneeded" cria apenas as stores que ainda não existirem, então
+// bancos já abertos em versões anteriores são atualizados automaticamente sem perda de
+// dados.
 const DATABASE_CONFIG = {
     name: "juresone.database",
-    version: 3,
+    version: 4,
     stores: {
         [STORAGE_KEYS.clients]: "clients",
         [STORAGE_KEYS.documents]: "documents",
         [STORAGE_KEYS.finance]: "finance",
         [STORAGE_KEYS.events]: "events",
         [STORAGE_KEYS.tasks]: "tasks",
+        [STORAGE_KEYS.installments]: "installments",
         [STORAGE_KEYS.kits]: "kits",
         [STORAGE_KEYS.templates]: "templates",
         [STORAGE_KEYS.clientDocuments]: "clientDocuments",

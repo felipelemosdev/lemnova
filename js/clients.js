@@ -23,6 +23,7 @@ import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { openDocumentPreview } from "./documents.js";
 import { confirmFinanceDelete } from "./finance.js";
 import { openContractModal } from "./contract.js";
+import { maybeGenerateInstallmentsOnActivation } from "./installments.js";
 import { renderAll } from "./main.js";
 
 export async function handleClientSubmit(event) {
@@ -100,6 +101,11 @@ export async function handleClientSubmit(event) {
         area: elements.clientArea.value,
         benefit: elements.clientBenefit ? elements.clientBenefit.value : "",
         status: elements.clientStatus.value,
+        contractValue: elements.clientContractValue ? Number(elements.clientContractValue.value) || 0 : (existingClient?.contractValue || 0),
+        installmentsCount: elements.clientInstallmentsCount ? Number(elements.clientInstallmentsCount.value) || 0 : (existingClient?.installmentsCount || 0),
+        rpvValue: elements.clientRpvValue ? Number(elements.clientRpvValue.value) || 0 : (existingClient?.rpvValue || 0),
+        rpvDate: elements.clientRpvDate ? elements.clientRpvDate.value : (existingClient?.rpvDate || ""),
+        rpvReceived: existingClient ? existingClient.rpvReceived || false : false,
         notes: elements.clientNotes.value.trim(),
         photoData,
         photoName,
@@ -107,6 +113,9 @@ export async function handleClientSubmit(event) {
         pdfName,
         pdfSize
     };
+
+    const previousStatus = existingClient ? existingClient.status : null;
+    const savedClientId = appState.editingClientId || createId();
 
     if (appState.editingClientId) {
         appState.clients = appState.clients.map((client) => (
@@ -116,7 +125,7 @@ export async function handleClientSubmit(event) {
         ));
     } else {
         appState.clients.unshift({
-            id: createId(),
+            id: savedClientId,
             ...payload,
             createdAt: new Date().toISOString()
         });
@@ -129,6 +138,8 @@ export async function handleClientSubmit(event) {
         alert("Não foi possível salvar a foto no navegador. Tente uma imagem menor.");
         return;
     }
+
+    await maybeGenerateInstallmentsOnActivation(findClient(savedClientId), previousStatus);
 
     resetClientForm();
     showClientMode("list");
@@ -209,6 +220,18 @@ export function fillClientForm(clientId) {
         elements.clientBenefit.value = client.benefit || "";
     }
     elements.clientStatus.value = client.status;
+    if (elements.clientContractValue) {
+        elements.clientContractValue.value = client.contractValue || "";
+    }
+    if (elements.clientInstallmentsCount) {
+        elements.clientInstallmentsCount.value = client.installmentsCount || "";
+    }
+    if (elements.clientRpvValue) {
+        elements.clientRpvValue.value = client.rpvValue || "";
+    }
+    if (elements.clientRpvDate) {
+        elements.clientRpvDate.value = client.rpvDate || "";
+    }
     elements.clientNotes.value = client.notes;
     updatePhotoPreview(client.photoData || "");
     setCpfMessage("", "");
@@ -262,6 +285,9 @@ export function resetClientForm() {
     elements.clientForm.reset();
     elements.clientId.value = "";
     elements.clientStatus.value = "Ativo";
+    if (elements.clientRpvDate) {
+        elements.clientRpvDate.value = "";
+    }
     updatePhotoPreview("");
     setCpfMessage("", "");
     setCepMessage("", "");

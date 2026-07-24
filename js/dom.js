@@ -29,6 +29,7 @@ export function cacheElements() {
         clients: document.getElementById("clientsSection"),
         documents: document.getElementById("documentsSection"),
         finance: document.getElementById("financeSection"),
+        contracts: document.getElementById("contractsSection"),
         agenda: document.getElementById("agendaSection"),
         tasks: document.getElementById("tasksSection")
     };
@@ -59,6 +60,10 @@ export function cacheElements() {
     elements.clientComplement = document.getElementById("clientComplement");
     elements.clientArea = document.getElementById("clientArea");
     elements.clientStatus = document.getElementById("clientStatus");
+    elements.clientContractValue = document.getElementById("clientContractValue");
+    elements.clientInstallmentsCount = document.getElementById("clientInstallmentsCount");
+    elements.clientRpvValue = document.getElementById("clientRpvValue");
+    elements.clientRpvDate = document.getElementById("clientRpvDate");
     elements.clientNotes = document.getElementById("clientNotes");
     elements.clientPhoto = document.getElementById("clientPhoto");
     elements.clientPdf = document.getElementById("clientPdf");
@@ -74,9 +79,16 @@ export function cacheElements() {
     elements.clientEmptyState = document.getElementById("clientEmptyState");
     elements.dashClientCount = document.getElementById("dashClientCount");
     elements.dashProcessCount = document.getElementById("dashProcessCount");
-    elements.dashFeesTotal = document.getElementById("dashFeesTotal");
-    elements.dashCostsTotal = document.getElementById("dashCostsTotal");
-    elements.dashBalanceTotal = document.getElementById("dashBalanceTotal");
+    elements.dashContractsOverdue = document.getElementById("dashContractsOverdue");
+    elements.dashContractsDueToday = document.getElementById("dashContractsDueToday");
+    elements.dashContractsReceiveToday = document.getElementById("dashContractsReceiveToday");
+    elements.dashContractsUpcoming = document.getElementById("dashContractsUpcoming");
+    elements.dashContractsOverdue30 = document.getElementById("dashContractsOverdue30");
+    elements.contractsFilter = document.getElementById("contractsFilter");
+    elements.contractsTableBody = document.getElementById("contractsTableBody");
+    elements.contractsEmptyState = document.getElementById("contractsEmptyState");
+    elements.rpvTableBody = document.getElementById("rpvTableBody");
+    elements.rpvEmptyState = document.getElementById("rpvEmptyState");
     elements.eventForm = document.getElementById("eventForm");
     elements.eventType = document.getElementById("eventType");
     elements.eventDate = document.getElementById("eventDate");
@@ -181,6 +193,7 @@ export function setActiveView(viewName) {
         clients: "Clientes",
         documents: "Processos",
         finance: "Financeiro",
+        contracts: "Contratos",
         agenda: "Agenda",
         tasks: "Tarefas"
     };

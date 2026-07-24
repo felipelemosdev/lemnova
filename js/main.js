@@ -83,6 +83,12 @@ import {
     handleNotifDetailOverlayClick
 } from "./dashboard.js";
 
+import {
+    renderContractsSection,
+    handleContractsTableClick,
+    handleRpvTableClick
+} from "./installments.js";
+
 import { printSection } from "./print.js";
 import { closeContractModal, generateAndPrintContract, refreshContractModalWarning, handleContractTemplateChange } from "./contract.js";
 
@@ -190,6 +196,15 @@ function bindEvents() {
     elements.documentPreviewOverlay.addEventListener("click", handlePreviewOverlayClick);
     elements.financeForm.addEventListener("submit", handleFinanceSubmit);
     elements.financeTableBody.addEventListener("click", handleFinanceTableClick);
+    if (elements.contractsFilter) {
+        elements.contractsFilter.addEventListener("change", renderContractsSection);
+    }
+    if (elements.contractsTableBody) {
+        elements.contractsTableBody.addEventListener("click", handleContractsTableClick);
+    }
+    if (elements.rpvTableBody) {
+        elements.rpvTableBody.addEventListener("click", handleRpvTableClick);
+    }
     document.addEventListener("keydown", handleGlobalKeydown);
     elements.taskForm.addEventListener("submit", handleTaskSubmit);
     elements.taskList.addEventListener("click", handleTaskListClick);
@@ -214,6 +229,7 @@ async function loadState() {
     appState.finance = await readStorage(STORAGE_KEYS.finance, []);
     appState.events = await readStorage(STORAGE_KEYS.events, []);
     appState.tasks = await readStorage(STORAGE_KEYS.tasks, []);
+    appState.installments = await readStorage(STORAGE_KEYS.installments, []);
 }
 
 
@@ -328,6 +344,7 @@ export function renderAll() {
     renderClientSelects();
     renderDocuments();
     renderFinance();
+    renderContractsSection();
     renderEvents();
     renderDashboardEvents();
     renderTasks();
@@ -340,6 +357,7 @@ const PRINT_TARGETS = {
     clients: { sectionId: "registeredClientsPanel", title: "Clientes" },
     documents: { sectionId: "documentListPanel", title: "Processos" },
     finance: { sectionId: "financeSection", title: "Financeiro" },
+    contracts: { sectionId: "contractsSection", title: "Contratos" },
     agenda: { sectionId: "agendaSection", title: "Agenda" },
     tasks: { sectionId: "taskListPanel", title: "Tarefas" }
 };

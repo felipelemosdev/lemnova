@@ -97,6 +97,28 @@ export function todayISO() {
 }
 
 
+// Soma N meses a uma data ISO (YYYY-MM-DD) preservando o dia sempre que possível
+// (cai para o último dia do mês de destino quando o dia de origem não existir nele,
+// ex.: 31/01 + 1 mês -> 28/02 ou 29/02). Usado para gerar os vencimentos mensais
+// das parcelas de contrato.
+export function addMonthsISO(dateISO, months) {
+    const [year, month, day] = dateISO.split("-").map(Number);
+    const targetMonthIndex = month - 1 + months;
+    const targetDate = new Date(Date.UTC(year, targetMonthIndex, 1));
+    const daysInTargetMonth = new Date(Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth() + 1, 0)).getUTCDate();
+    targetDate.setUTCDate(Math.min(day, daysInTargetMonth));
+    return targetDate.toISOString().slice(0, 10);
+}
+
+
+// Diferença em dias corridos entre duas datas ISO (a - b).
+export function diffDaysISO(dateISOa, dateISOb) {
+    const a = new Date(`${dateISOa}T00:00:00Z`);
+    const b = new Date(`${dateISOb}T00:00:00Z`);
+    return Math.round((a - b) / 86400000);
+}
+
+
 export function formatCurrency(value) {
     return new Intl.NumberFormat("pt-BR", {
         style: "currency",

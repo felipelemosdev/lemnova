@@ -6,6 +6,7 @@ import { appState, findClient } from "./state.js";
 import { elements } from "./dom.js";
 import { todayISO, formatDate, formatCurrency, escapeHTML } from "./utils.js";
 import { calculateFinanceTotals } from "./finance.js";
+import { renderContractIndicators } from "./installments.js";
 import { getSortedEvents } from "./agenda.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { renderAll } from "./main.js";
@@ -247,16 +248,7 @@ export function renderSummary() {
     elements.paymentsTotal.textContent = formatCurrency(totals.officeCosts);
     elements.receiptsTotal.textContent = formatCurrency(totals.balance);
 
-    if (elements.dashFeesTotal) {
-        elements.dashFeesTotal.textContent = formatCurrency(totals.fees);
-    }
-    if (elements.dashCostsTotal) {
-        elements.dashCostsTotal.textContent = formatCurrency(totals.officeCosts);
-    }
-    if (elements.dashBalanceTotal) {
-        elements.dashBalanceTotal.textContent = formatCurrency(totals.balance);
-    }
-
+    renderContractIndicators();
     renderDashboardTasks();
     renderNotifications();
 }

@@ -10,6 +10,7 @@ export const appState = {
     documents: [],
     finance: [],
     events: [],
+    installments: [],
     contractPdfTemplates: [],
     editingClientId: null,
     editingEventId: null,
@@ -36,6 +37,7 @@ export async function persistAll() {
         saveStorage(STORAGE_KEYS.finance, appState.finance),
         saveStorage(STORAGE_KEYS.events, appState.events),
         saveStorage(STORAGE_KEYS.tasks, appState.tasks),
+        saveStorage(STORAGE_KEYS.installments, appState.installments),
         saveStorage(STORAGE_KEYS.contractPdfTemplates, appState.contractPdfTemplates)
     ]);
 }

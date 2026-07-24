@@ -76,6 +76,10 @@
                         <span class="nav-icon" aria-hidden="true">R$</span>
                         <span class="nav-label">Financeiro</span>
                     </button>
+                    <button class="nav-link" type="button" data-view="contracts">
+                        <span class="nav-icon" aria-hidden="true">⏰</span>
+                        <span class="nav-label">Contratos</span>
+                    </button>
                     <button class="nav-link" type="button" data-view="agenda">
                         <span class="nav-icon" aria-hidden="true">◷</span>
                         <span class="nav-label">Agenda</span>
@@ -245,29 +249,41 @@
 
             <div class="section-heading">
                 <div>
-                    <p class="eyebrow">Financeiro</p>
-                    <h3>Resumo financeiro</h3>
+                    <p class="eyebrow">Contratos</p>
+                    <h3>Situação dos contratos</h3>
                 </div>
             </div>
 
             <div class="finance-overview">
 
                 <article class="summary-card">
-                    <span>Honorários</span>
-                    <strong id="dashFeesTotal">R$ 0,00</strong>
-                    <p>Entradas</p>
+                    <span>Vencidos</span>
+                    <strong id="dashContractsOverdue">0</strong>
+                    <p>Parcelas em atraso</p>
                 </article>
 
                 <article class="summary-card">
-                    <span>Custos</span>
-                    <strong id="dashCostsTotal">R$ 0,00</strong>
-                    <p>Despesas</p>
+                    <span>Vencendo hoje</span>
+                    <strong id="dashContractsDueToday">0</strong>
+                    <p>Parcelas com vencimento hoje</p>
                 </article>
 
                 <article class="summary-card">
-                    <span>Saldo</span>
-                    <strong id="dashBalanceTotal">R$ 0,00</strong>
-                    <p>Resultado</p>
+                    <span>Receber hoje</span>
+                    <strong id="dashContractsReceiveToday">0</strong>
+                    <p>RPVs previstos para hoje</p>
+                </article>
+
+                <article class="summary-card">
+                    <span>A vencer</span>
+                    <strong id="dashContractsUpcoming">0</strong>
+                    <p>Parcelas futuras</p>
+                </article>
+
+                <article class="summary-card">
+                    <span>Vencido +30 dias</span>
+                    <strong id="dashContractsOverdue30">0</strong>
+                    <p>Atraso crítico</p>
                 </article>
 
             </div>
@@ -451,13 +467,35 @@
                                 <span>Status</span>
                                 <select id="clientStatus" required>
                                     <option value="Ativo">Ativo</option>
-                                    <option value="Ativo">Aguardando</option>
+                                    <option value="Aguardando">Aguardando</option>
                                     <option value="Em análise">Em análise</option>
-                                    <option value="Ativo">Recusado</option>
+                                    <option value="Recusado">Recusado</option>
                                     <option value="Arquivado">Arquivado</option>
 
                                 </select>
                             </label>
+
+                            <label class="field">
+                                <span>Valor do contrato (R$)</span>
+                                <input id="clientContractValue" type="number" min="0" step="0.01" placeholder="Ex: 4500.00">
+                            </label>
+
+                            <label class="field">
+                                <span>Nº de parcelas</span>
+                                <input id="clientInstallmentsCount" type="number" min="1" step="1" placeholder="Ex: 6">
+                            </label>
+
+                            <label class="field">
+                                <span>RPV — valor previsto (R$)</span>
+                                <input id="clientRpvValue" type="number" min="0" step="0.01" placeholder="Deixe em branco se não houver">
+                            </label>
+
+                            <label class="field">
+                                <span>RPV — data prevista</span>
+                                <input id="clientRpvDate" type="date">
+                            </label>
+
+                            <p class="field-hint full-width">Ao salvar o cliente com status <strong>Ativo</strong> pela primeira vez, as parcelas do contrato são geradas automaticamente (valor ÷ nº de parcelas, uma por mês). O RPV não entra nas parcelas: fica em aberto até ser marcado como recebido na aba Contratos.</p>
 
                             <label class="field full-width">
                                 <span>Anexar arquivo PDF</span>
@@ -721,6 +759,69 @@
                             <p id="financeEmptyState" class="empty-state">Nenhuma movimentação cadastrada.</p>
                         </section>
                     </div>
+                </section>
+
+                <!-- Seção Contratos: vencimentos das parcelas geradas automaticamente e RPVs -->
+                <section id="contractsSection" class="content-section">
+                    <section class="workspace-panel">
+                        <div class="section-heading">
+                            <div>
+                                <p class="eyebrow">Controle de parcelas</p>
+                                <h3>Vencimentos dos contratos</h3>
+                            </div>
+                            <label class="field" style="min-width:220px">
+                                <span>Filtrar</span>
+                                <select id="contractsFilter">
+                                    <option value="pending">Em aberto (vencidos, hoje e a vencer)</option>
+                                    <option value="overdue">Somente vencidos</option>
+                                    <option value="all">Todos (inclui pagas)</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Cliente</th>
+                                        <th>Benefício</th>
+                                        <th>Parcela</th>
+                                        <th>Valor</th>
+                                        <th>Vencimento</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="contractsTableBody"></tbody>
+                            </table>
+                        </div>
+                        <p id="contractsEmptyState" class="empty-state">Nenhum vencimento encontrado.</p>
+                    </section>
+
+                    <section class="workspace-panel">
+                        <div class="section-heading">
+                            <div>
+                                <p class="eyebrow">RPV</p>
+                                <h3>RPVs pendentes de recebimento</h3>
+                            </div>
+                        </div>
+
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Cliente</th>
+                                        <th>Valor do RPV</th>
+                                        <th>Previsão</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rpvTableBody"></tbody>
+                            </table>
+                        </div>
+                        <p id="rpvEmptyState" class="empty-state">Nenhum RPV cadastrado.</p>
+                    </section>
                 </section>
 
                 <!-- Seção Agenda (CRUD completo) -->
