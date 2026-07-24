@@ -52,13 +52,20 @@ import { appState } from "./state.js";
 import { elements } from "./dom.js";
 import { todayISO, formatDate, escapeHTML } from "./utils.js";
 
-import { pendingKit, buildSignatureBlocks } from "./contract/core.js";
+import { buildSignatureBlocks } from "./contract/core.js";
 import { BENEFICIOS, PATROCINIO_ASSINATURAS, tipoAcaoJudicial } from "./contract/beneficios.js";
 import { HONORARIOS, describeHonorarios } from "./contract/honorarios.js";
 import {
     docContratoRpv,
     buildContratoAposentadoria,
     buildContratoAuxilioDoenca,
+    buildContratoAuxilioAcidente,
+    buildContratoPensaoMorte,
+    buildContratoMajoracao,
+    buildContratoMaternidade,
+    buildContratoTrabalhista,
+    buildContratoDoencaOcupacional,
+    buildContratoConsumidor,
     buildContratoLoas
 } from "./contract/contratoPrestacao.js";
 import { docProcuracaoAdministrativa, docAutorizacaoMeuInss } from "./contract/kitAdministrativo.js";
@@ -118,70 +125,182 @@ export const CONTRACT_TEMPLATES = {
         id: "auxilio_acidente",
         label: "Auxílio-Acidente",
         matches: ["Auxílio-Acidente", "Auxilio-Acidente", "Acidente de Trabalho"],
-        pending: true,
-        kit: pendingKit("Auxílio-Acidente")
+        kit: [
+            {
+                title: "CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS",
+                subtitle: "Contrato completo — Auxílio-Acidente",
+                signatures: ["assinatura"],
+                buildBody: buildContratoAuxilioAcidente
+            },
+            docContratoRpv(tipoAcaoJudicial(BENEFICIOS.auxilio_acidente)),
+            docTermoConcordancia(),
+            docProcuracaoAdministrativa(BENEFICIOS.auxilio_acidente.tipoAcao),
+            docAutorizacaoMeuInss(BENEFICIOS.auxilio_acidente.tipoAcao),
+            docProcuracaoAdJudicia(tipoAcaoJudicial(BENEFICIOS.auxilio_acidente)),
+            docDeclaracaoHipossuficiencia(),
+            docPatrocinioGratuito(PATROCINIO_ASSINATURAS.auxilio_acidente, "ação de concessão de benefício previdenciário"),
+            docTermoRenuncia()
+        ]
     },
 
+    // Doença Ocupacional: mesmo texto de cláusulas do Trabalhista (só o objeto
+    // citado na Cláusula 1ª muda) — ver buildContratoDoencaOcupacional() em
+    // contratoPrestacao.js. Inclui a Confirmação de Honorários (30% sobre RPV) e o
+    // Termo de Renúncia — documentos originalmente usados só nos benefícios do
+    // INSS/JEF, mas reaproveitados aqui a pedido da Dra. Débora.
     doenca_ocupacional: {
         id: "doenca_ocupacional",
         label: "Doença Ocupacional",
         matches: ["Doença Ocupacional", "Doenca Ocupacional"],
-        pending: true,
-        kit: pendingKit("Doença Ocupacional")
+        kit: [
+            {
+                title: "CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS",
+                subtitle: "Contrato completo — Doença Ocupacional",
+                signatures: ["contratante"],
+                buildBody: buildContratoDoencaOcupacional
+            },
+            docContratoRpv("Doença Ocupacional"),
+            docProcuracaoAdJudicia("Ação de Doença Ocupacional"),
+            docDeclaracaoHipossuficiencia("trabalhista"),
+            docPatrocinioGratuito(["debora_oab", "ciente"], "AÇÃO DE DOENÇA OCUPACIONAL"),
+            docTermoRenuncia()
+        ]
     },
 
     pensao_morte: {
         id: "pensao_morte",
         label: "Pensão por Morte",
         matches: ["Pensão por Morte", "Pensao por Morte"],
-        pending: true,
-        kit: pendingKit("Pensão por Morte")
+        kit: [
+            {
+                title: "CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS",
+                signatures: ["contratada", "contratante"],
+                buildBody: buildContratoPensaoMorte
+            },
+            docContratoRpv(tipoAcaoJudicial(BENEFICIOS.pensao_morte)),
+            docTermoConcordancia(),
+            docProcuracaoAdministrativa(BENEFICIOS.pensao_morte.tipoAcao),
+            docAutorizacaoMeuInss(BENEFICIOS.pensao_morte.tipoAcao),
+            docProcuracaoAdJudicia(tipoAcaoJudicial(BENEFICIOS.pensao_morte)),
+            docDeclaracaoHipossuficiencia(),
+            docPatrocinioGratuito(PATROCINIO_ASSINATURAS.pensao_morte, "ação de Pensão por Morte"),
+            docTermoRenuncia()
+        ]
     },
 
+    // Trabalhista não é um benefício do INSS: sem RPV, sem Termo de Concordância,
+    // sem Autorização Meu INSS e sem Termo de Renúncia — nenhum desses documentos
+    // existe no kit original deste contrato (ver nota de fidelidade em
+    // contratoPrestacao.js). O tipoAcao "Ação Trabalhista" é passado direto, sem
+    // entrada em BENEFICIOS, porque este não é um benefício previdenciário.
     trabalhista: {
         id: "trabalhista",
         label: "Trabalhista",
         matches: ["Trabalhista"],
-        pending: true,
-        kit: pendingKit("Trabalhista")
+        kit: [
+            {
+                title: "CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS",
+                subtitle: "Contrato completo — Ação Trabalhista",
+                signatures: ["contratante"],
+                buildBody: buildContratoTrabalhista
+            },
+            docProcuracaoAdJudicia("Ação Trabalhista"),
+            docDeclaracaoHipossuficiencia("trabalhista"),
+            docPatrocinioGratuito(PATROCINIO_ASSINATURAS.trabalhista, "AÇÃO TRABALHISTA")
+        ]
     },
 
     maternidade: {
         id: "maternidade",
         label: "Maternidade",
         matches: ["Maternidade", "Salário-Maternidade", "Salario-Maternidade"],
-        pending: true,
-        kit: pendingKit("Maternidade")
+        kit: [
+            {
+                title: "CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS",
+                subtitle: "Contrato completo — Salário-Maternidade",
+                signatures: ["contratante"],
+                buildBody: buildContratoMaternidade
+            },
+            docContratoRpv(tipoAcaoJudicial(BENEFICIOS.maternidade)),
+            docTermoConcordancia(),
+            docProcuracaoAdministrativa(BENEFICIOS.maternidade.tipoAcao),
+            docAutorizacaoMeuInss(BENEFICIOS.maternidade.tipoAcao),
+            docProcuracaoAdJudicia(tipoAcaoJudicial(BENEFICIOS.maternidade)),
+            docDeclaracaoHipossuficiencia(),
+            docPatrocinioGratuito(PATROCINIO_ASSINATURAS.maternidade, "ação de concessão de benefício previdenciário"),
+            docTermoRenuncia()
+        ]
     },
 
     majoracao: {
         id: "majoracao",
         label: "Majoração",
         matches: ["Majoração", "Majoracao"],
-        pending: true,
-        kit: pendingKit("Majoração")
+        kit: [
+            {
+                title: "CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS",
+                signatures: ["contratada", "contratante"],
+                buildBody: buildContratoMajoracao
+            },
+            docContratoRpv(tipoAcaoJudicial(BENEFICIOS.majoracao)),
+            docTermoConcordancia(),
+            docProcuracaoAdministrativa(BENEFICIOS.majoracao.tipoAcao),
+            docAutorizacaoMeuInss(BENEFICIOS.majoracao.tipoAcao),
+            docProcuracaoAdJudicia(tipoAcaoJudicial(BENEFICIOS.majoracao)),
+            docDeclaracaoHipossuficiencia(),
+            docPatrocinioGratuito(PATROCINIO_ASSINATURAS.majoracao, "AÇÃO DE CONCESSÃO DE BENEFÍCIO PREVIDENCIÁRIO"),
+            docTermoRenuncia()
+        ]
     },
 
     loas_idoso: {
         id: "loas_idoso",
         label: "LOAS Idoso",
         matches: ["LOAS Idoso", "BPC Idoso"],
-        kit: [buildContratoLoas(BENEFICIOS.loas_idoso.beneficio)]
+        kit: [
+            buildContratoLoas(BENEFICIOS.loas_idoso.beneficio),
+            docContratoRpv(tipoAcaoJudicial(BENEFICIOS.loas_idoso)),
+            docTermoConcordancia(),
+            docProcuracaoAdministrativa(BENEFICIOS.loas_idoso.tipoAcao),
+            docAutorizacaoMeuInss(BENEFICIOS.loas_idoso.tipoAcao),
+            docProcuracaoAdJudicia(tipoAcaoJudicial(BENEFICIOS.loas_idoso)),
+            docDeclaracaoHipossuficiencia(),
+            docPatrocinioGratuito(PATROCINIO_ASSINATURAS.loas_idoso),
+            docTermoRenuncia()
+        ]
     },
 
     loas_deficiente: {
         id: "loas_deficiente",
         label: "LOAS Deficiente",
         matches: ["LOAS Deficiente", "BPC Deficiente"],
-        kit: [buildContratoLoas(BENEFICIOS.loas_deficiente.beneficio)]
+        kit: [
+            buildContratoLoas(BENEFICIOS.loas_deficiente.beneficio),
+            docContratoRpv(tipoAcaoJudicial(BENEFICIOS.loas_deficiente)),
+            docTermoConcordancia(),
+            docProcuracaoAdministrativa(BENEFICIOS.loas_deficiente.tipoAcao),
+            docAutorizacaoMeuInss(BENEFICIOS.loas_deficiente.tipoAcao),
+            docProcuracaoAdJudicia(tipoAcaoJudicial(BENEFICIOS.loas_deficiente)),
+            docDeclaracaoHipossuficiencia(),
+            docPatrocinioGratuito(PATROCINIO_ASSINATURAS.loas_deficiente),
+            docTermoRenuncia()
+        ]
     },
 
     consumidor: {
         id: "consumidor",
         label: "Consumidor",
         matches: ["Consumidor", "Direito do Consumidor"],
-        pending: true,
-        kit: pendingKit("Consumidor")
+        kit: [
+            {
+                title: "CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS",
+                signatures: ["contratada", "contratante"],
+                buildBody: buildContratoConsumidor
+            },
+            docProcuracaoAdJudicia("AÇÃO CONSUMIDOR"),
+            docDeclaracaoHipossuficiencia(),
+            docPatrocinioGratuito(["debora_oab", "assinatura"])
+        ]
     }
 
     // Para cadastrar o kit definitivo de um modelo pendente, troque o "kit" da entrada
@@ -250,6 +369,7 @@ export function refreshContractModalWarning() {
         !client.name && "nome",
         !client.nationality && "nacionalidade",
         !client.maritalStatus && "estado civil",
+        !client.profession && "profissão",
         !client.rg && "RG",
         !client.document && "CPF",
         !(client.address && client.address.street) && "endereço"
@@ -359,7 +479,7 @@ function buildKitHtml(client, templateId) {
     return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
         <title>${escapeHTML(template.label)} — ${escapeHTML(client.name)}</title>
         <style>
-            @page { margin: 20mm 18mm 22mm; }
+            @page { margin: 1.27cm; }
 
             * { box-sizing: border-box; }
 
@@ -370,11 +490,11 @@ function buildKitHtml(client, templateId) {
             }
 
             body {
-                font-family: Georgia, "Times New Roman", serif;
+                font-family: Aptos, "Aptos Narrow", Calibri, Arial, sans-serif;
                 color: #1c2333;
                 margin: 0;
                 padding: 0 8px 40px;
-                font-size: 0.94rem;
+                font-size: 11pt;
                 line-height: 1.55;
             }
 

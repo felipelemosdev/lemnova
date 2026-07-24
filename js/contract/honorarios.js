@@ -28,6 +28,11 @@ export const HONORARIOS = {
         salariosAdministrativo: 5,
         salariosJudicial: 6,
         percentual: 30
+    },
+    salario_fixo: {
+        id: "salario_fixo",
+        label: "Salário Mínimo Fixo",
+        salarioMinimoFixo: 1
     }
 };
 
@@ -42,6 +47,8 @@ export function describeHonorarios(key) {
             return `${opcao.salariosAdministrativo} salários (administrativo) / ${opcao.salariosJudicial} salários (judicial)`;
         case "misto":
             return `${opcao.salariosAdministrativo} salários (administrativo) / ${opcao.salariosJudicial} salários (judicial) + ${opcao.percentual}% sobre os atrasados`;
+        case "salario_fixo":
+            return `${opcao.salarioMinimoFixo} salário mínimo vigente à época da concessão do benefício`;
         default:
             return opcao.label;
     }

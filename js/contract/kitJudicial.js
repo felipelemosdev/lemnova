@@ -64,7 +64,7 @@ export function docTermoConcordancia() {
     };
 }
 
-export function docDeclaracaoHipossuficiencia() {
+export function docDeclaracaoHipossuficiencia(juizo = "Federal") {
     return {
         title: "DECLARAÇÃO DE HIPOSSUFICIÊNCIA",
         signatures: ["assinatura"],
@@ -76,7 +76,7 @@ export function docDeclaracaoHipossuficiencia() {
                     identidade nº.: ${escapeHTML(f.rg)}, inscrito (a) no CPF sob nº.: ${escapeHTML(f.cpf)},
                     residente e domiciliado na ${escapeHTML(f.endereco)}.</p>
 
-                <p>DECLARA para fins de prova junto ao Juízo Federal, que não possui condições de
+                <p>DECLARA para fins de prova junto ao Juízo ${escapeHTML(juizo)}, que não possui condições de
                     arcar com o ônus processual, estando nas exatas condições da Lei nº 1060/50, e
                     art. 98 CPC, carecendo, pois, dos benefícios da <strong>GRATUIDADE DE JUSTIÇA</strong>.</p>
             `;
@@ -108,7 +108,7 @@ export function docTermoRenuncia() {
 
 // Único documento cujo texto é sempre igual, mas as assinaturas mudam conforme o kit
 // (ver PATROCINIO_ASSINATURAS em beneficios.js) — mantido fiel ao original.
-export function docPatrocinioGratuito(signatures) {
+export function docPatrocinioGratuito(signatures, assunto = "ação previdenciária") {
     return {
         title: "DO PATROCÍNIO GRATUITO",
         signatures,
@@ -117,7 +117,7 @@ export function docPatrocinioGratuito(signatures) {
                 <p><strong>${escapeHTML(ESCRITORIO.advogadoNome)}</strong>, brasileira, casada, advogada,
                     inscrita na OAB/RJ sob o nº. 162.559, com escritório localizado na
                     ${escapeHTML(ESCRITORIO.escritorioEndereco)}, DECLARAM, para os fins de direito, que não está
-                    cobrando honorários advocatícios na ação previdenciária antecipadamente.</p>
+                    cobrando honorários advocatícios na ${escapeHTML(assunto)} antecipadamente.</p>
             `;
         }
     };

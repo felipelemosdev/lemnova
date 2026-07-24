@@ -37,14 +37,44 @@ export const BENEFICIOS = {
     loas_idoso: {
         beneficio: "Benefício Assistencial ao Idoso",
         tipoAcao: "Benefício Assistencial ao Idoso",
+        tipoAcaoJudicial: "AÇÃO DE CONCESSÃO DE BENEFÍCIO PREVIDENCIÁRIO",
         orgao: "INSS",
         honorarioPadrao: "salarios"
     },
     loas_deficiente: {
         beneficio: "Benefício Assistencial ao Portador de Deficiência",
         tipoAcao: "Benefício Assistencial ao Portador de Deficiência",
+        tipoAcaoJudicial: "AÇÃO DE CONCESSÃO DE BENEFÍCIO PREVIDENCIÁRIO",
         orgao: "INSS",
         honorarioPadrao: "salarios"
+    },
+    auxilio_acidente: {
+        beneficio: "Auxílio-Acidente",
+        tipoAcao: "AUXILIO-ACIDENTE",
+        tipoAcaoJudicial: "AÇÃO DE CONCESSÃO DE BENEFÍCIO PREVIDENCIÁRIO",
+        orgao: "INSS",
+        honorarioPadrao: "misto"
+    },
+    pensao_morte: {
+        beneficio: "Pensão por Morte",
+        tipoAcao: "PENSÃO POR MORTE",
+        tipoAcaoJudicial: "ação de Pensão por Morte",
+        orgao: "INSS",
+        honorarioPadrao: "salarios"
+    },
+    majoracao: {
+        beneficio: "Majoração de 25% sobre o Benefício Previdenciário",
+        tipoAcao: "MAJORAÇÃO DE 25% SOBRE O BENEFICIO PREVIDENCIARIO",
+        tipoAcaoJudicial: "AÇÃO DE CONCESSÃO DE BENEFÍCIO PREVIDENCIÁRIO",
+        orgao: "INSS",
+        honorarioPadrao: "salario_fixo"
+    },
+    maternidade: {
+        beneficio: "Salário-Maternidade",
+        tipoAcao: "SALÁRIO MATERNIDADE",
+        tipoAcaoJudicial: "AÇÃO DE CONCESSÃO DE BENEFÍCIO PREVIDENCIÁRIO",
+        orgao: "INSS",
+        honorarioPadrao: "percentual"
     }
 };
 
@@ -52,7 +82,14 @@ export const BENEFICIOS = {
 // isoladamente, então ficam fora de BENEFICIOS (que agora é só os 4 campos pedidos).
 export const PATROCINIO_ASSINATURAS = {
     aposentadoria: ["debora_oab", "ciente"],
-    auxilio_doenca: ["debora_oab", "assinatura"]
+    auxilio_doenca: ["debora_oab", "assinatura"],
+    loas_idoso: ["debora_oab", "ciente"],
+    loas_deficiente: ["debora_oab", "ciente"],
+    auxilio_acidente: ["debora_oab", "ciente"],
+    pensao_morte: ["debora_oab", "ciente"],
+    majoracao: ["debora_oab", "assinatura"],
+    maternidade: ["debora_oab", "ciente"],
+    trabalhista: ["debora_oab", "ciente"]
 };
 
 // Texto do pedido a usar no Kit Judicial (docProcuracaoAdJudicia, docContratoRpv): usa
