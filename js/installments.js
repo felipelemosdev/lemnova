@@ -137,15 +137,27 @@ export function renderContractIndicators() {
 }
 
 
+function getCurrentMonthISO() {
+    const today = new Date(todayISO());
+    return todayISO().slice(0, 7); // "YYYY-MM"
+}
+
 function getFilteredInstallments() {
-    const filter = elements.contractsFilter ? elements.contractsFilter.value : "pending";
+    const filter = elements.contractsFilter ? elements.contractsFilter.value : "current-month";
     const sorted = [...appState.installments].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    const currentMonth = getCurrentMonthISO();
 
     if (filter === "all") {
         return sorted;
     }
     if (filter === "overdue") {
         return sorted.filter((installment) => !installment.paid && ["overdue", "overdue30"].includes(getInstallmentStatus(installment)));
+    }
+    if (filter === "current-month") {
+        return sorted.filter((installment) => installment.dueDate.startsWith(currentMonth) && !installment.paid);
+    }
+    if (filter === "future") {
+        return sorted.filter((installment) => installment.dueDate > todayISO() && !installment.paid);
     }
     return sorted.filter((installment) => !installment.paid);
 }
@@ -160,30 +172,64 @@ export function renderContractsSection() {
 function renderInstallmentsTable() {
     if (!elements.contractsTableBody) return;
 
-    const rows = getFilteredInstallments();
+    const rows = getFilteredInstallments()
+        .filter((installment) => findClient(installment.clientId));
+
     elements.contractsTableBody.innerHTML = "";
 
     if (elements.contractsEmptyState) {
         elements.contractsEmptyState.classList.toggle("hidden", rows.length > 0);
     }
 
+    // Agrupar por mês
+    const groupedByMonth = {};
     rows.forEach((installment) => {
-        const client = findClient(installment.clientId);
-        const status = getInstallmentStatus(installment);
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${client ? escapeHTML(client.name) : "Cliente removido"}</td>
-            <td>${client ? escapeHTML(client.benefit || "-") : "-"}</td>
-            <td>${installment.number}/${installment.total}</td>
-            <td>${formatCurrency(installment.amount)}</td>
-            <td>${formatDate(installment.dueDate)}</td>
-            <td><span class="task-pill ${STATUS_PILL_CLASS[status]}">${STATUS_LABELS[status]}</span></td>
-            <td>${installment.paid
-                ? "—"
-                : `<button class="action-button complete" type="button" data-action="pay-installment" data-id="${installment.id}">✓ Marcar paga</button>`
-            }</td>
+        const month = installment.dueDate.slice(0, 7); // "YYYY-MM"
+        if (!groupedByMonth[month]) {
+            groupedByMonth[month] = [];
+        }
+        groupedByMonth[month].push(installment);
+    });
+
+    // Renderizar agrupado por mês
+    Object.keys(groupedByMonth).sort().forEach((month) => {
+        const monthInstallments = groupedByMonth[month];
+        const monthTotal = monthInstallments.reduce((sum, inst) => sum + inst.amount, 0);
+
+        // Cabeçalho do mês
+        const monthHeaderRow = document.createElement("tr");
+        monthHeaderRow.className = "month-header-row";
+        monthHeaderRow.innerHTML = `
+            <td colspan="7" style="font-weight: bold; background-color: #f5f5f5; padding: 12px;">
+                📅 ${formatDate(month + "-01").split("/").slice(0, 2).join("/")} — 
+                <span style="color: #2c3e50;">Total: ${formatCurrency(monthTotal)}</span>
+            </td>
         `;
-        elements.contractsTableBody.appendChild(row);
+        elements.contractsTableBody.appendChild(monthHeaderRow);
+
+        // Linhas de cada parcela
+        monthInstallments.forEach((installment) => {
+            const client = findClient(installment.clientId);
+            const status = getInstallmentStatus(installment);
+
+            const row = document.createElement("tr");
+            row.className = "installment-row";
+
+            row.innerHTML = `
+                <td>${escapeHTML(client.name)}</td>
+                <td>${escapeHTML(client.benefit || "-")}</td>
+                <td>${installment.number}/${installment.total}</td>
+                <td>${formatCurrency(installment.amount)}</td>
+                <td>${formatDate(installment.dueDate)}</td>
+                <td><span class="task-pill ${STATUS_PILL_CLASS[status]}">${STATUS_LABELS[status]}</span></td>
+                <td>${installment.paid
+                    ? "—"
+                    : `<button class="action-button complete" type="button" data-action="pay-installment" data-id="${installment.id}">✓ Marcar paga</button>`
+                }</td>
+            `;
+
+            elements.contractsTableBody.appendChild(row);
+        });
     });
 }
 
@@ -198,23 +244,70 @@ function renderRpvTable() {
         elements.rpvEmptyState.classList.toggle("hidden", rows.length > 0);
     }
 
+    // Agrupar por mês
+    const groupedByMonth = {};
     const today = todayISO();
+    
     rows.forEach((client) => {
-        const isToday = client.rpvDate === today && !client.rpvReceived;
-        const statusLabel = client.rpvReceived ? "Recebido" : isToday ? "Receber hoje" : "Aguardando";
-        const statusClass = client.rpvReceived ? "low" : isToday ? "medium" : "low";
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${escapeHTML(client.name)}</td>
-            <td>${formatCurrency(client.rpvValue)}</td>
-            <td>${client.rpvDate ? formatDate(client.rpvDate) : "Sem previsão"}</td>
-            <td><span class="task-pill ${statusClass}">${statusLabel}</span></td>
-            <td>${client.rpvReceived
-                ? "—"
-                : `<button class="action-button complete" type="button" data-action="receive-rpv" data-id="${client.id}">✓ Marcar recebido</button>`
-            }</td>
+        const month = client.rpvDate ? client.rpvDate.slice(0, 7) : "sem-data"; // "YYYY-MM"
+        if (!groupedByMonth[month]) {
+            groupedByMonth[month] = [];
+        }
+        groupedByMonth[month].push(client);
+    });
+
+    // Renderizar agrupado por mês
+    Object.keys(groupedByMonth).sort().forEach((month) => {
+        const monthClients = groupedByMonth[month];
+        const monthTotal = monthClients.reduce((sum, client) => sum + Number(client.rpvValue), 0);
+
+        // Cabeçalho do mês
+        const monthHeaderRow = document.createElement("tr");
+        monthHeaderRow.className = "month-header-row";
+        const monthLabel = month === "sem-data" 
+            ? "Sem previsão" 
+            : `${formatDate(month + "-01").split("/").slice(0, 2).join("/")}`;
+        monthHeaderRow.innerHTML = `
+            <td colspan="5" style="font-weight: bold; background-color: #f5f5f5; padding: 12px;">
+                📅 ${monthLabel} — 
+                <span style="color: #2c3e50;">Total: ${formatCurrency(monthTotal)}</span>
+            </td>
         `;
-        elements.rpvTableBody.appendChild(row);
+        elements.rpvTableBody.appendChild(monthHeaderRow);
+
+        // Linhas de cada RPV
+        monthClients.forEach((client) => {
+            const isToday = client.rpvDate === today && !client.rpvReceived;
+            const isFuture = client.rpvDate && client.rpvDate > today && !client.rpvReceived;
+            const statusLabel = client.rpvReceived 
+                ? "Recebido" 
+                : isToday 
+                    ? "Receber hoje" 
+                    : isFuture
+                        ? "Lançamento futuro"
+                        : "Aguardando";
+            const statusClass = client.rpvReceived 
+                ? "low" 
+                : isToday 
+                    ? "medium" 
+                    : isFuture
+                        ? "low"
+                        : "low";
+            
+            const row = document.createElement("tr");
+            row.className = "rpv-row";
+            row.innerHTML = `
+                <td>${escapeHTML(client.name)}</td>
+                <td>${formatCurrency(client.rpvValue)}</td>
+                <td>${client.rpvDate ? formatDate(client.rpvDate) : "Sem previsão"}</td>
+                <td><span class="task-pill ${statusClass}">${statusLabel}</span></td>
+                <td>${client.rpvReceived
+                    ? "—"
+                    : `<button class="action-button complete" type="button" data-action="receive-rpv" data-id="${client.id}">✓ Marcar recebido</button>`
+                }</td>
+            `;
+            elements.rpvTableBody.appendChild(row);
+        });
     });
 }
 

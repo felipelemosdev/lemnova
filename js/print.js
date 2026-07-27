@@ -1,6 +1,4 @@
-// js/print.js
-// Geração do documento HTML impresso com o timbre do Jures One (letterhead, watermark,
-// estilos de impressão) e a função genérica que imprime qualquer seção da tela por id.
+
 
 import { escapeHTML } from "./utils.js";
 

@@ -41,8 +41,9 @@ export function ensureFinancialScheduleForClient(client, previousClient = null) 
         return false;
     }
 
-    const amount = Number(client.feesAmount) || 0;
-    const totalInstallments = Math.max(1, Number(client.feeInstallments) || 1);
+    // Vincular ao contrato: usar contractValue e installmentsCount
+    const amount = Number(client.contractValue) || 0;
+    const totalInstallments = Math.max(1, Number(client.installmentsCount) || 1);
     const firstDueDate = client.firstDueDate || "";
     const contractId = getClientContractId(client);
 
@@ -55,8 +56,8 @@ export function ensureFinancialScheduleForClient(client, previousClient = null) 
     ));
     const becameActive = !previousClient || previousClient.status !== "Ativo";
     const scheduleChanged = previousClient && (
-        Number(previousClient.feesAmount) !== amount
-        || Number(previousClient.feeInstallments) !== totalInstallments
+        Number(previousClient.contractValue) !== amount
+        || Number(previousClient.installmentsCount) !== totalInstallments
         || previousClient.firstDueDate !== firstDueDate
         || getClientContractId(previousClient) !== contractId
     );
@@ -139,31 +140,118 @@ export async function receiveInstallment(installmentId, paymentMethod = "Recebim
 }
 
 
+function getCurrentMonthISO() {
+    return todayISO().slice(0, 7); // "YYYY-MM"
+}
+
+function getFilteredFinanceEntries() {
+    const filter = elements.financeFilter ? elements.financeFilter.value : "current-month";
+    const sorted = [...appState.finance].sort((a, b) => b.date.localeCompare(a.date));
+    const currentMonth = getCurrentMonthISO();
+
+    if (filter === "all") {
+        return sorted;
+    }
+    if (filter === "current-month") {
+        return sorted.filter((entry) => entry.date.startsWith(currentMonth));
+    }
+    return sorted;
+}
+
+function renderFutureEntriesInfo() {
+    if (!elements.futureEntriesInfo) return;
+    
+    const today = todayISO();
+    const futureEntries = appState.finance.filter((entry) => entry.date > today);
+    
+    if (futureEntries.length === 0) {
+        elements.futureEntriesInfo.innerHTML = `
+            <div style="padding: 12px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px; color: #2c3e50;">
+                <strong>📅 Lançamentos Futuros:</strong> Nenhum lançamento agendado para o futuro.
+            </div>
+        `;
+        return;
+    }
+
+    const futureTotal = futureEntries.reduce((sum, entry) => {
+        const flow = getFinanceFlow(entry);
+        return flow === "Entrada" ? sum + entry.amount : sum - entry.amount;
+    }, 0);
+
+    const entriesCount = futureEntries.filter((e) => getFinanceFlow(e) === "Entrada").length;
+    const exitsCount = futureEntries.filter((e) => getFinanceFlow(e) === "Saída").length;
+
+    elements.futureEntriesInfo.innerHTML = `
+        <div style="padding: 12px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px; color: #2c3e50;">
+            <strong>📅 Lançamentos Futuros:</strong> 
+            ${entriesCount} entradas e ${exitsCount} saídas agendadas • 
+            <span style="font-weight: bold; color: ${futureTotal >= 0 ? '#27ae60' : '#e74c3c'};">
+                ${formatCurrency(futureTotal)}
+            </span>
+        </div>
+    `;
+}
+
 export function renderFinance() {
     renderFinanceSummary();
     renderFinancialSchedule();
     renderRpvTable();
     elements.financeTableBody.innerHTML = "";
-    elements.financeEmptyState.classList.toggle("hidden", appState.finance.length > 0);
+    
+    const filteredEntries = getFilteredFinanceEntries();
+    elements.financeEmptyState.classList.toggle("hidden", filteredEntries.length > 0);
 
-    appState.finance.forEach((entry) => {
-        const client = findClient(entry.clientId);
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${createTypePill(entry.type)}</td>
-            <td>${escapeHTML(entry.category || inferFinanceCategory(entry))}</td>
-            <td>${entry.contractType ? `<span class="status-pill">${escapeHTML(entry.contractType)}</span>` : "—"}</td>
-            <td>
-                <div class="transaction-cell">
-                    <strong>${escapeHTML(entry.description)}</strong>
-                    <span>${client ? escapeHTML(client.name) : "Sem cliente"}</span>
-                </div>
+    // Agrupar por mês
+    const groupedByMonth = {};
+    filteredEntries.forEach((entry) => {
+        const month = entry.date.slice(0, 7); // "YYYY-MM"
+        if (!groupedByMonth[month]) {
+            groupedByMonth[month] = [];
+        }
+        groupedByMonth[month].push(entry);
+    });
+
+    // Renderizar agrupado por mês
+    Object.keys(groupedByMonth).sort().reverse().forEach((month) => {
+        const monthEntries = groupedByMonth[month];
+        const monthTotal = monthEntries.reduce((sum, entry) => {
+            const flow = getFinanceFlow(entry);
+            return flow === "Entrada" ? sum + entry.amount : sum - entry.amount;
+        }, 0);
+
+        // Cabeçalho do mês
+        const monthHeaderRow = document.createElement("tr");
+        monthHeaderRow.className = "month-header-row";
+        monthHeaderRow.innerHTML = `
+            <td colspan="7" style="font-weight: bold; background-color: #f5f5f5; padding: 12px;">
+                📅 ${formatDate(month + "-01").split("/").slice(0, 2).join("/")} — 
+                <span style="color: #2c3e50;">Saldo: ${formatCurrency(monthTotal)}</span>
             </td>
-            <td>${formatCurrency(entry.amount)}</td>
-            <td>${formatDate(entry.date)}</td>
-            <td><button class="action-button danger" type="button" data-action="delete-finance" data-id="${entry.id}">Excluir</button></td>
         `;
-        elements.financeTableBody.appendChild(row);
+        elements.financeTableBody.appendChild(monthHeaderRow);
+
+        // Linhas de cada entrada
+        monthEntries.forEach((entry) => {
+            const client = findClient(entry.clientId);
+            const row = document.createElement("tr");
+            row.className = "finance-row";
+
+            row.innerHTML = `
+                <td>${createTypePill(entry.type)}</td>
+                <td>${escapeHTML(entry.category || inferFinanceCategory(entry))}</td>
+                <td>${entry.contractType ? `<span class="status-pill">${escapeHTML(entry.contractType)}</span>` : "—"}</td>
+                <td>
+                    <div class="transaction-cell">
+                        <strong>${escapeHTML(entry.description)}</strong>
+                        <span>${client ? escapeHTML(client.name) : "Sem cliente"}</span>
+                    </div>
+                </td>
+                <td>${formatCurrency(entry.amount)}</td>
+                <td>${formatDate(entry.date)}</td>
+                <td><button class="action-button danger" type="button" data-action="delete-finance" data-id="${entry.id}">Excluir</button></td>
+            `;
+            elements.financeTableBody.appendChild(row);
+        });
     });
 }
 
@@ -365,23 +453,53 @@ function renderFinancialSchedule() {
     elements.financialScheduleTableBody.innerHTML = "";
     elements.financialScheduleEmpty.classList.toggle("hidden", scheduleItems.length > 0);
 
+    // Agrupar por mês
+    const groupedByMonth = {};
     scheduleItems.forEach((item) => {
-        const client = findClient(item.clientId);
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${client ? escapeHTML(client.name) : "Sem cliente"}</td>
-            <td>${escapeHTML(item.contractId || "Contrato")}</td>
-            <td>${item.installment}/${item.totalInstallments}</td>
-            <td>${formatCurrency(item.amount)}</td>
-            <td>${formatDate(item.dueDate)}</td>
-            <td>${createScheduleStatusPill(item.status)}</td>
-            <td>
-                ${item.status === "paid"
-                    ? `<span>${formatDate(item.paidDate)}</span>`
-                    : `<button class="action-button" type="button" data-action="receive-installment" data-id="${item.id}">Receber</button>`}
+        const month = item.dueDate.slice(0, 7); // "YYYY-MM"
+        if (!groupedByMonth[month]) {
+            groupedByMonth[month] = [];
+        }
+        groupedByMonth[month].push(item);
+    });
+
+    // Renderizar agrupado por mês
+    Object.keys(groupedByMonth).sort().forEach((month) => {
+        const monthItems = groupedByMonth[month];
+        const monthTotal = monthItems.reduce((sum, item) => sum + Number(item.amount), 0);
+
+        // Cabeçalho do mês
+        const monthHeaderRow = document.createElement("tr");
+        monthHeaderRow.className = "month-header-row";
+        monthHeaderRow.innerHTML = `
+            <td colspan="8" style="font-weight: bold; background-color: #f5f5f5; padding: 12px;">
+                📅 ${formatDate(month + "-01").split("/").slice(0, 2).join("/")} — 
+                <span style="color: #2c3e50;">Total: ${formatCurrency(monthTotal)}</span>
             </td>
         `;
-        elements.financialScheduleTableBody.appendChild(row);
+        elements.financialScheduleTableBody.appendChild(monthHeaderRow);
+
+        // Linhas de cada item
+        monthItems.forEach((item) => {
+            const client = findClient(item.clientId);
+            const row = document.createElement("tr");
+            row.className = "schedule-row";
+
+            row.innerHTML = `
+                <td>${client ? escapeHTML(client.name) : "Sem cliente"}</td>
+                <td>${escapeHTML(item.contractId || "Contrato")}</td>
+                <td>${item.installment}/${item.totalInstallments}</td>
+                <td>${formatCurrency(item.amount)}</td>
+                <td>${formatDate(item.dueDate)}</td>
+                <td>${createScheduleStatusPill(item.status)}</td>
+                <td>
+                    ${item.status === "paid"
+                        ? `<span>${formatDate(item.paidDate)}</span>`
+                        : `<button class="action-button" type="button" data-action="receive-installment" data-id="${item.id}">Receber</button>`}
+                </td>
+            `;
+            elements.financialScheduleTableBody.appendChild(row);
+        });
     });
 }
 
@@ -392,20 +510,62 @@ function renderRpvTable() {
     elements.rpvTableBody.innerHTML = "";
     elements.rpvEmptyState.classList.toggle("hidden", rpvItems.length > 0);
 
+    const today = todayISO();
+
+    // Agrupar por mês
+    const groupedByMonth = {};
     rpvItems.forEach((item) => {
-        const client = findClient(item.clientId);
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${client ? escapeHTML(client.name) : escapeHTML(item.clientName || "Sem cliente")}</td>
-            <td>${escapeHTML(item.process || "")}</td>
-            <td>${formatCurrency(item.expectedAmount)}</td>
-            <td>${formatCurrency(item.receivedAmount)}</td>
-            <td>${formatDate(item.expectedDate)}</td>
-            <td>${formatDate(item.receivedDate)}</td>
-            <td>${createScheduleStatusPill(item.status || "pending")}</td>
-            <td>${escapeHTML(item.notes || "")}</td>
+        const month = item.expectedDate ? item.expectedDate.slice(0, 7) : "sem-data";
+        if (!groupedByMonth[month]) {
+            groupedByMonth[month] = [];
+        }
+        groupedByMonth[month].push(item);
+    });
+
+    // Renderizar agrupado por mês
+    Object.keys(groupedByMonth).sort().forEach((month) => {
+        const monthItems = groupedByMonth[month];
+        const monthTotal = monthItems.reduce((sum, item) => sum + Number(item.expectedAmount || 0), 0);
+
+        // Cabeçalho do mês
+        const monthHeaderRow = document.createElement("tr");
+        monthHeaderRow.className = "month-header-row";
+        const monthLabel = month === "sem-data" 
+            ? "Sem previsão" 
+            : `${formatDate(month + "-01").split("/").slice(0, 2).join("/")}`;
+        monthHeaderRow.innerHTML = `
+            <td colspan="8" style="font-weight: bold; background-color: #f5f5f5; padding: 12px;">
+                📅 ${monthLabel} — 
+                <span style="color: #2c3e50;">Total: ${formatCurrency(monthTotal)}</span>
+            </td>
         `;
-        elements.rpvTableBody.appendChild(row);
+        elements.rpvTableBody.appendChild(monthHeaderRow);
+
+        // Linhas de cada item RPV
+        monthItems.forEach((item) => {
+            const client = findClient(item.clientId);
+            const isFuture = item.expectedDate && item.expectedDate > today && !item.receivedDate;
+            let statusDisplay = createScheduleStatusPill(item.status || "pending");
+            
+            if (isFuture && (!item.status || item.status === "pending")) {
+                statusDisplay = '<span class="status-pill">Lançamento futuro</span>';
+            }
+
+            const row = document.createElement("tr");
+            row.className = "rpv-row";
+
+            row.innerHTML = `
+                <td>${client ? escapeHTML(client.name) : escapeHTML(item.clientName || "Sem cliente")}</td>
+                <td>${escapeHTML(item.process || "")}</td>
+                <td>${formatCurrency(item.expectedAmount)}</td>
+                <td>${formatCurrency(item.receivedAmount)}</td>
+                <td>${formatDate(item.expectedDate)}</td>
+                <td>${formatDate(item.receivedDate)}</td>
+                <td>${statusDisplay}</td>
+                <td>${escapeHTML(item.notes || "")}</td>
+            `;
+            elements.rpvTableBody.appendChild(row);
+        });
     });
 }
 
