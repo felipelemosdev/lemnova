@@ -1,12 +1,14 @@
 // js/installments.js
 // Módulo de Contratos: geração automática de parcelas (vencimentos) quando um cliente é
 // ativado, cálculo dos indicadores de status (vencidos, vencendo hoje, a vencer, vencido
-// há mais de 30 dias), controle de recebimento de RPV e renderização da aba "Contratos".
+// há mais de 30 dias), controle de recebimento de RPV, edição/exclusão manual de parcelas
+// e renderização da aba "Contratos".
 
 import { appState, findClient } from "./state.js";
-import { elements } from "./dom.js";
+import { elements, closeConfirmModal, setActiveView } from "./dom.js";
 import { createId, todayISO, formatDate, formatCurrency, addMonthsISO, diffDaysISO, escapeHTML } from "./utils.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
+import { buildPrintDocument } from "./print.js";
 import { renderAll } from "./main.js";
 
 const OVERDUE_30_DAYS_THRESHOLD = 30;
@@ -109,6 +111,26 @@ const STATUS_PILL_CLASS = {
 };
 
 
+// Soma de todas as parcelas em aberto (vencidas + vencendo hoje + a vencer), usada pelo
+// card "Parcelas a receber" do Financeiro para trazer o valor a receber dos contratos
+// ativos para dentro do controle de caixa.
+export function calculatePendingInstallmentsSummary() {
+    const pending = appState.installments.filter((installment) => !installment.paid);
+
+    const total = pending.reduce((sum, installment) => sum + (Number(installment.amount) || 0), 0);
+    const overdueTotal = pending
+        .filter((installment) => ["overdue", "overdue30"].includes(getInstallmentStatus(installment)))
+        .reduce((sum, installment) => sum + (Number(installment.amount) || 0), 0);
+
+    return {
+        total,
+        count: pending.length,
+        overdueTotal,
+        upcomingTotal: total - overdueTotal
+    };
+}
+
+
 export function calculateContractIndicators() {
     const pending = appState.installments.filter((installment) => !installment.paid);
 
@@ -137,29 +159,61 @@ export function renderContractIndicators() {
 }
 
 
-function getCurrentMonthISO() {
-    const today = new Date(todayISO());
-    return todayISO().slice(0, 7); // "YYYY-MM"
+function getInstallmentMonthKey(dueDate) {
+    return dueDate ? dueDate.slice(0, 7) : ""; // "YYYY-MM"
 }
 
-function getFilteredInstallments() {
-    const filter = elements.contractsFilter ? elements.contractsFilter.value : "current-month";
-    const sorted = [...appState.installments].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-    const currentMonth = getCurrentMonthISO();
 
-    if (filter === "all") {
-        return sorted;
-    }
-    if (filter === "overdue") {
-        return sorted.filter((installment) => !installment.paid && ["overdue", "overdue30"].includes(getInstallmentStatus(installment)));
-    }
-    if (filter === "current-month") {
-        return sorted.filter((installment) => installment.dueDate.startsWith(currentMonth) && !installment.paid);
-    }
-    if (filter === "future") {
-        return sorted.filter((installment) => installment.dueDate > todayISO() && !installment.paid);
-    }
-    return sorted.filter((installment) => !installment.paid);
+function formatMonthLabel(monthKey) {
+    const [year, month] = monthKey.split("-").map(Number);
+    const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(Date.UTC(year, month - 1, 1)));
+    return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+
+// Preenche o filtro de mês com todos os meses que têm parcela, preservando a seleção
+// atual sempre que ela continuar válida.
+function populateContractsMonthFilter() {
+    if (!elements.contractsMonthFilter) return;
+
+    const previousValue = elements.contractsMonthFilter.value || "all";
+    const monthKeys = [...new Set(appState.installments.map((installment) => getInstallmentMonthKey(installment.dueDate)).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b));
+
+    const options = ['<option value="all">Todos os meses</option>']
+        .concat(monthKeys.map((key) => `<option value="${key}">${formatMonthLabel(key)}</option>`));
+
+    elements.contractsMonthFilter.innerHTML = options.join("");
+    elements.contractsMonthFilter.value = monthKeys.includes(previousValue) || previousValue === "all" ? previousValue : "all";
+}
+
+
+function getFilteredInstallments() {
+    const statusFilter = elements.contractsFilter ? elements.contractsFilter.value : "pending";
+    const monthFilter = elements.contractsMonthFilter ? elements.contractsMonthFilter.value : "all";
+    const searchTerm = elements.contractsSearch ? elements.contractsSearch.value.trim().toLowerCase() : "";
+
+    return appState.installments
+        .filter((installment) => {
+            const status = getInstallmentStatus(installment);
+
+            if (statusFilter === "overdue" && !["overdue", "overdue30"].includes(status)) return false;
+            if (statusFilter === "upcoming" && status !== "upcoming") return false;
+            if (statusFilter === "today" && status !== "today") return false;
+            if (statusFilter === "pending" && installment.paid) return false;
+            // statusFilter === "all" não filtra por status
+
+            if (monthFilter !== "all" && getInstallmentMonthKey(installment.dueDate) !== monthFilter) return false;
+
+            if (searchTerm) {
+                const client = findClient(installment.clientId);
+                const clientName = client ? client.name.toLowerCase() : "";
+                if (!clientName.includes(searchTerm)) return false;
+            }
+
+            return true;
+        })
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
 
 
@@ -172,153 +226,130 @@ export function renderContractsSection() {
 function renderInstallmentsTable() {
     if (!elements.contractsTableBody) return;
 
-    const rows = getFilteredInstallments()
-        .filter((installment) => findClient(installment.clientId));
+    populateContractsMonthFilter();
 
+    const rows = getFilteredInstallments();
     elements.contractsTableBody.innerHTML = "";
 
     if (elements.contractsEmptyState) {
         elements.contractsEmptyState.classList.toggle("hidden", rows.length > 0);
     }
 
-    // Agrupar por mês
-    const groupedByMonth = {};
-    rows.forEach((installment) => {
-        const month = installment.dueDate.slice(0, 7); // "YYYY-MM"
-        if (!groupedByMonth[month]) {
-            groupedByMonth[month] = [];
-        }
-        groupedByMonth[month].push(installment);
-    });
+    if (!rows.length) {
+        return;
+    }
 
-    // Renderizar agrupado por mês
-    Object.keys(groupedByMonth).sort().forEach((month) => {
-        const monthInstallments = groupedByMonth[month];
-        const monthTotal = monthInstallments.reduce((sum, inst) => sum + inst.amount, 0);
+    // Agrupa por mês de vencimento (do mais antigo/vencido para o mais futuro), com uma
+    // linha de subtotal por mês.
+    const monthKeys = [...new Set(rows.map((installment) => getInstallmentMonthKey(installment.dueDate)))]
+        .sort((a, b) => a.localeCompare(b));
 
-        // Cabeçalho do mês
-        const monthHeaderRow = document.createElement("tr");
-        monthHeaderRow.className = "month-header-row";
-        monthHeaderRow.innerHTML = `
-            <td colspan="7" style="font-weight: bold; background-color: #f5f5f5; padding: 12px;">
-                📅 ${formatDate(month + "-01").split("/").slice(0, 2).join("/")} — 
-                <span style="color: #2c3e50;">Total: ${formatCurrency(monthTotal)}</span>
+    monthKeys.forEach((monthKey) => {
+        const installmentsOfMonth = rows.filter((installment) => getInstallmentMonthKey(installment.dueDate) === monthKey);
+        const monthTotal = installmentsOfMonth.reduce((sum, installment) => sum + (Number(installment.amount) || 0), 0);
+
+        const headerRow = document.createElement("tr");
+        headerRow.innerHTML = `
+            <td colspan="7" style="font-weight:700">
+                ${monthKey ? formatMonthLabel(monthKey) : "Sem vencimento"}
+                <span style="font-weight:400;color:var(--color-muted)"> · ${installmentsOfMonth.length} parcela(s) · Total: ${formatCurrency(monthTotal)}</span>
             </td>
         `;
-        elements.contractsTableBody.appendChild(monthHeaderRow);
+        elements.contractsTableBody.appendChild(headerRow);
 
-        // Linhas de cada parcela
-        monthInstallments.forEach((installment) => {
-            const client = findClient(installment.clientId);
-            const status = getInstallmentStatus(installment);
-
-            const row = document.createElement("tr");
-            row.className = "installment-row";
-
-            row.innerHTML = `
-                <td>${escapeHTML(client.name)}</td>
-                <td>${escapeHTML(client.benefit || "-")}</td>
-                <td>${installment.number}/${installment.total}</td>
-                <td>${formatCurrency(installment.amount)}</td>
-                <td>${formatDate(installment.dueDate)}</td>
-                <td><span class="task-pill ${STATUS_PILL_CLASS[status]}">${STATUS_LABELS[status]}</span></td>
-                <td>${installment.paid
-                    ? "—"
-                    : `<button class="action-button complete" type="button" data-action="pay-installment" data-id="${installment.id}">✓ Marcar paga</button>`
-                }</td>
-            `;
-
-            elements.contractsTableBody.appendChild(row);
+        installmentsOfMonth.forEach((installment) => {
+            elements.contractsTableBody.appendChild(buildInstallmentRow(installment));
         });
     });
+}
+
+
+function buildInstallmentRow(installment) {
+    const client = findClient(installment.clientId);
+    const status = getInstallmentStatus(installment);
+    const row = document.createElement("tr");
+    row.innerHTML = `
+        <td>${client ? escapeHTML(client.name) : "Cliente removido"}</td>
+        <td>${client ? escapeHTML(client.benefit || "-") : "-"}</td>
+        <td>${installment.total ? `${installment.number}/${installment.total}` : "Avulsa"}</td>
+        <td>${formatCurrency(installment.amount)}</td>
+        <td>${formatDate(installment.dueDate)}</td>
+        <td><span class="task-pill ${STATUS_PILL_CLASS[status]}">${STATUS_LABELS[status]}</span></td>
+        <td class="event-actions">
+            <button class="action-button ${installment.paid ? "" : "complete"}" type="button" data-action="toggle-installment-paid" data-id="${installment.id}">${installment.paid ? "↺ Desfazer" : "✓ Marcar paga"}</button>
+            <button class="action-button" type="button" data-action="edit-installment" data-id="${installment.id}">Editar</button>
+            <button class="action-button danger" type="button" data-action="delete-installment" data-id="${installment.id}">Excluir</button>
+        </td>
+    `;
+    return row;
 }
 
 
 function renderRpvTable() {
     if (!elements.rpvTableBody) return;
 
-    const rows = appState.clients.filter((client) => Number(client.rpvValue) > 0);
+    const searchTerm = elements.contractsSearch ? elements.contractsSearch.value.trim().toLowerCase() : "";
+    const rows = appState.clients.filter((client) => (
+        Number(client.rpvValue) > 0 && (!searchTerm || client.name.toLowerCase().includes(searchTerm))
+    ));
     elements.rpvTableBody.innerHTML = "";
 
     if (elements.rpvEmptyState) {
         elements.rpvEmptyState.classList.toggle("hidden", rows.length > 0);
     }
 
-    // Agrupar por mês
-    const groupedByMonth = {};
     const today = todayISO();
-    
     rows.forEach((client) => {
-        const month = client.rpvDate ? client.rpvDate.slice(0, 7) : "sem-data"; // "YYYY-MM"
-        if (!groupedByMonth[month]) {
-            groupedByMonth[month] = [];
-        }
-        groupedByMonth[month].push(client);
-    });
-
-    // Renderizar agrupado por mês
-    Object.keys(groupedByMonth).sort().forEach((month) => {
-        const monthClients = groupedByMonth[month];
-        const monthTotal = monthClients.reduce((sum, client) => sum + Number(client.rpvValue), 0);
-
-        // Cabeçalho do mês
-        const monthHeaderRow = document.createElement("tr");
-        monthHeaderRow.className = "month-header-row";
-        const monthLabel = month === "sem-data" 
-            ? "Sem previsão" 
-            : `${formatDate(month + "-01").split("/").slice(0, 2).join("/")}`;
-        monthHeaderRow.innerHTML = `
-            <td colspan="5" style="font-weight: bold; background-color: #f5f5f5; padding: 12px;">
-                📅 ${monthLabel} — 
-                <span style="color: #2c3e50;">Total: ${formatCurrency(monthTotal)}</span>
+        const isToday = client.rpvDate === today && !client.rpvReceived;
+        const statusLabel = client.rpvReceived ? "Recebido" : isToday ? "Receber hoje" : "Aguardando";
+        const statusClass = client.rpvReceived ? "low" : isToday ? "medium" : "low";
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${escapeHTML(client.name)}</td>
+            <td>${formatCurrency(client.rpvValue)}</td>
+            <td>${client.rpvDate ? formatDate(client.rpvDate) : "Sem previsão"}</td>
+            <td><span class="task-pill ${statusClass}">${statusLabel}</span></td>
+            <td class="event-actions">
+                <button class="action-button ${client.rpvReceived ? "" : "complete"}" type="button" data-action="toggle-rpv-received" data-id="${client.id}">${client.rpvReceived ? "↺ Desfazer" : "✓ Marcar recebido"}</button>
+                <button class="action-button" type="button" data-action="edit-rpv" data-id="${client.id}">Editar</button>
+                <button class="action-button danger" type="button" data-action="delete-rpv" data-id="${client.id}">Excluir</button>
             </td>
         `;
-        elements.rpvTableBody.appendChild(monthHeaderRow);
-
-        // Linhas de cada RPV
-        monthClients.forEach((client) => {
-            const isToday = client.rpvDate === today && !client.rpvReceived;
-            const isFuture = client.rpvDate && client.rpvDate > today && !client.rpvReceived;
-            const statusLabel = client.rpvReceived 
-                ? "Recebido" 
-                : isToday 
-                    ? "Receber hoje" 
-                    : isFuture
-                        ? "Lançamento futuro"
-                        : "Aguardando";
-            const statusClass = client.rpvReceived 
-                ? "low" 
-                : isToday 
-                    ? "medium" 
-                    : isFuture
-                        ? "low"
-                        : "low";
-            
-            const row = document.createElement("tr");
-            row.className = "rpv-row";
-            row.innerHTML = `
-                <td>${escapeHTML(client.name)}</td>
-                <td>${formatCurrency(client.rpvValue)}</td>
-                <td>${client.rpvDate ? formatDate(client.rpvDate) : "Sem previsão"}</td>
-                <td><span class="task-pill ${statusClass}">${statusLabel}</span></td>
-                <td>${client.rpvReceived
-                    ? "—"
-                    : `<button class="action-button complete" type="button" data-action="receive-rpv" data-id="${client.id}">✓ Marcar recebido</button>`
-                }</td>
-            `;
-            elements.rpvTableBody.appendChild(row);
-        });
+        elements.rpvTableBody.appendChild(row);
     });
 }
 
 
+// ---------------------------------------------------------------------------------------
+// Ações da tabela de parcelas: marcar/desfazer pagamento, editar, excluir, adicionar avulsa
+// ---------------------------------------------------------------------------------------
+
 export async function handleContractsTableClick(event) {
-    const button = event.target.closest("button[data-action='pay-installment']");
+    const button = event.target.closest("button[data-action]");
     if (!button) return;
 
+    const { action, id } = button.dataset;
+
+    if (action === "toggle-installment-paid") {
+        await toggleInstallmentPaid(id);
+    }
+    if (action === "edit-installment") {
+        openInstallmentModal({ mode: "edit", installmentId: id });
+    }
+    if (action === "delete-installment") {
+        requestDeleteInstallment(id);
+    }
+}
+
+
+async function toggleInstallmentPaid(installmentId) {
     appState.installments = appState.installments.map((installment) => (
-        installment.id === button.dataset.id
-            ? { ...installment, paid: true, paidAt: new Date().toISOString() }
+        installment.id === installmentId
+            ? {
+                ...installment,
+                paid: !installment.paid,
+                paidAt: installment.paid ? null : new Date().toISOString()
+            }
             : installment
     ));
     await saveStorage(STORAGE_KEYS.installments, appState.installments);
@@ -326,15 +357,347 @@ export async function handleContractsTableClick(event) {
 }
 
 
+function requestDeleteInstallment(installmentId) {
+    appState.pendingDeleteClientId = null;
+    appState.pendingDeleteFinanceId = null;
+    appState.pendingClearRpvClientId = null;
+    appState.pendingDeleteInstallmentId = installmentId;
+
+    document.getElementById("confirmTitle").textContent = "Excluir parcela";
+    document.getElementById("confirmText").textContent = "Esta ação remove definitivamente esta parcela do controle de contratos.";
+    elements.confirmOverlay.classList.remove("hidden");
+    elements.cancelDeleteButton.focus();
+}
+
+
+// Chamado pelo roteador de exclusão em clients.js (mesmo modal genérico usado para
+// excluir cliente e lançamento financeiro).
+export async function confirmInstallmentDelete() {
+    const installmentId = appState.pendingDeleteInstallmentId;
+    if (!installmentId) {
+        closeConfirmModal();
+        return;
+    }
+
+    appState.installments = appState.installments.filter((installment) => installment.id !== installmentId);
+    await saveStorage(STORAGE_KEYS.installments, appState.installments);
+    closeConfirmModal();
+    renderAll();
+}
+
+
+// ---------------------------------------------------------------------------------------
+// Modal de nova parcela avulsa / edição de parcela existente
+// ---------------------------------------------------------------------------------------
+
+function populateInstallmentClientSelect() {
+    if (!elements.installmentClientSelect) return;
+    elements.installmentClientSelect.innerHTML = appState.clients
+        .map((client) => `<option value="${client.id}">${escapeHTML(client.name)}</option>`)
+        .join("");
+}
+
+
+export function openInstallmentModal({ mode, installmentId = null } = {}) {
+    if (!elements.installmentModalOverlay) return;
+
+    appState.editingInstallmentId = mode === "edit" ? installmentId : null;
+
+    if (elements.installmentModalWarning) {
+        elements.installmentModalWarning.classList.add("hidden");
+        elements.installmentModalWarning.textContent = "";
+    }
+
+    if (mode === "edit") {
+        const installment = appState.installments.find((item) => item.id === installmentId);
+        if (!installment) return;
+
+        elements.installmentModalTitle.textContent = "Editar parcela";
+        elements.installmentClientField.classList.add("hidden");
+        elements.installmentValueInput.value = installment.amount;
+        elements.installmentDueDateInput.value = installment.dueDate;
+    } else {
+        populateInstallmentClientSelect();
+        elements.installmentModalTitle.textContent = "Nova parcela avulsa";
+        elements.installmentClientField.classList.remove("hidden");
+        elements.installmentValueInput.value = "";
+        elements.installmentDueDateInput.value = todayISO();
+    }
+
+    elements.installmentModalOverlay.classList.remove("hidden");
+}
+
+
+export function closeInstallmentModal() {
+    appState.editingInstallmentId = null;
+    if (elements.installmentModalOverlay) {
+        elements.installmentModalOverlay.classList.add("hidden");
+    }
+}
+
+
+export function handleInstallmentModalOverlayClick(event) {
+    if (event.target === elements.installmentModalOverlay) {
+        closeInstallmentModal();
+    }
+}
+
+
+export async function handleInstallmentModalSave() {
+    const amount = Number(elements.installmentValueInput.value);
+    const dueDate = elements.installmentDueDateInput.value;
+
+    if (!amount || amount <= 0 || !dueDate) {
+        elements.installmentModalWarning.textContent = "Informe um valor válido e a data de vencimento.";
+        elements.installmentModalWarning.classList.remove("hidden");
+        return;
+    }
+
+    if (appState.editingInstallmentId) {
+        appState.installments = appState.installments.map((installment) => (
+            installment.id === appState.editingInstallmentId
+                ? { ...installment, amount, dueDate, updatedAt: new Date().toISOString() }
+                : installment
+        ));
+    } else {
+        const clientId = elements.installmentClientSelect.value;
+        if (!clientId) {
+            elements.installmentModalWarning.textContent = "Selecione o cliente.";
+            elements.installmentModalWarning.classList.remove("hidden");
+            return;
+        }
+
+        appState.installments = [
+            {
+                id: createId(),
+                clientId,
+                number: appState.installments.filter((item) => item.clientId === clientId).length + 1,
+                total: null, // parcela avulsa, fora do parcelamento automático
+                amount,
+                dueDate,
+                paid: false,
+                paidAt: null,
+                createdAt: new Date().toISOString()
+            },
+            ...appState.installments
+        ];
+    }
+
+    await saveStorage(STORAGE_KEYS.installments, appState.installments);
+    closeInstallmentModal();
+    renderAll();
+}
+
+
+// ---------------------------------------------------------------------------------------
+// Ações da tabela de RPV: marcar/desfazer recebimento, editar (leva ao cadastro do
+// cliente, onde os campos de RPV já existem) e excluir (limpa o RPV do cliente)
+// ---------------------------------------------------------------------------------------
+
 export async function handleRpvTableClick(event) {
-    const button = event.target.closest("button[data-action='receive-rpv']");
+    const button = event.target.closest("button[data-action]");
     if (!button) return;
 
+    const { action, id } = button.dataset;
+
+    if (action === "toggle-rpv-received") {
+        await toggleRpvReceived(id);
+    }
+    if (action === "edit-rpv") {
+        editRpv(id);
+    }
+    if (action === "delete-rpv") {
+        requestClearRpv(id);
+    }
+}
+
+
+async function toggleRpvReceived(clientId) {
     appState.clients = appState.clients.map((client) => (
-        client.id === button.dataset.id
-            ? { ...client, rpvReceived: true, rpvReceivedAt: new Date().toISOString() }
+        client.id === clientId
+            ? {
+                ...client,
+                rpvReceived: !client.rpvReceived,
+                rpvReceivedAt: client.rpvReceived ? null : new Date().toISOString()
+            }
             : client
     ));
     await saveStorage(STORAGE_KEYS.clients, appState.clients);
     renderAll();
+}
+
+
+// Reaproveita o formulário de cadastro de cliente (já tem os campos de RPV) em vez de
+// duplicar um formulário de edição só para isso.
+async function editRpv(clientId) {
+    const clientsModule = await import("./clients.js");
+    clientsModule.fillClientForm(clientId);
+    clientsModule.showClientMode("register");
+    setActiveView("clients");
+    if (elements.sidebar) {
+        elements.sidebar.classList.remove("open");
+    }
+}
+
+
+function requestClearRpv(clientId) {
+    appState.pendingDeleteClientId = null;
+    appState.pendingDeleteFinanceId = null;
+    appState.pendingDeleteInstallmentId = null;
+    appState.pendingClearRpvClientId = clientId;
+
+    document.getElementById("confirmTitle").textContent = "Excluir RPV";
+    document.getElementById("confirmText").textContent = "Esta ação remove o valor e a previsão de RPV deste cliente (o contrato e as parcelas não são afetados).";
+    elements.confirmOverlay.classList.remove("hidden");
+    elements.cancelDeleteButton.focus();
+}
+
+
+// Chamado pelo roteador de exclusão em clients.js (mesmo modal genérico usado para
+// excluir cliente e lançamento financeiro).
+export async function confirmRpvClear() {
+    const clientId = appState.pendingClearRpvClientId;
+    if (!clientId) {
+        closeConfirmModal();
+        return;
+    }
+
+    appState.clients = appState.clients.map((client) => (
+        client.id === clientId
+            ? { ...client, rpvValue: 0, rpvDate: "", rpvReceived: false, rpvReceivedAt: null }
+            : client
+    ));
+    await saveStorage(STORAGE_KEYS.clients, appState.clients);
+    closeConfirmModal();
+    renderAll();
+}
+
+
+// ---------------------------------------------------------------------------------------
+// Relatório de impressão da aba Contratos: respeita busca/mês/status aplicados na tela
+// (mesma lógica de getFilteredInstallments), mostra os indicadores no topo, as parcelas
+// agrupadas por mês e a lista de RPVs pendentes — sem formulários/filtros/botões de ação.
+// ---------------------------------------------------------------------------------------
+
+export function printContractsReport() {
+    const filteredInstallments = getFilteredInstallments();
+    const indicators = calculateContractIndicators();
+
+    const monthFilterValue = elements.contractsMonthFilter ? elements.contractsMonthFilter.value : "all";
+    const monthLabel = monthFilterValue && monthFilterValue !== "all" ? formatMonthLabel(monthFilterValue) : "Todos os meses";
+    const statusFilterValue = elements.contractsFilter ? elements.contractsFilter.value : "pending";
+    const statusLabel = {
+        pending: "Em aberto",
+        overdue: "Vencidos",
+        today: "Vencendo hoje",
+        upcoming: "A vencer",
+        all: "Todos"
+    }[statusFilterValue] || statusFilterValue;
+    const searchTerm = elements.contractsSearch ? elements.contractsSearch.value.trim() : "";
+
+    const summary = `
+        <div class="finance-overview">
+            <article class="summary-card">
+                <span>Vencidos</span>
+                <strong>${indicators.overdue}</strong>
+                <p>Parcelas em atraso</p>
+            </article>
+            <article class="summary-card">
+                <span>Vencendo hoje</span>
+                <strong>${indicators.dueToday}</strong>
+                <p>Parcelas com vencimento hoje</p>
+            </article>
+            <article class="summary-card">
+                <span>Receber hoje</span>
+                <strong>${indicators.receiveToday}</strong>
+                <p>RPVs previstos para hoje</p>
+            </article>
+            <article class="summary-card">
+                <span>A vencer</span>
+                <strong>${indicators.upcoming}</strong>
+                <p>Parcelas futuras</p>
+            </article>
+            <article class="summary-card">
+                <span>Vencido +30 dias</span>
+                <strong>${indicators.overdue30}</strong>
+                <p>Atraso crítico</p>
+            </article>
+        </div>
+    `;
+
+    let installmentsBody;
+    if (!filteredInstallments.length) {
+        installmentsBody = '<p style="color:#667085">Nenhuma parcela encontrada para os filtros aplicados.</p>';
+    } else {
+        const monthKeys = [...new Set(filteredInstallments.map((installment) => getInstallmentMonthKey(installment.dueDate)))]
+            .sort((a, b) => a.localeCompare(b));
+
+        installmentsBody = monthKeys.map((monthKey) => {
+            const installmentsOfMonth = filteredInstallments.filter((installment) => getInstallmentMonthKey(installment.dueDate) === monthKey);
+            const monthTotal = installmentsOfMonth.reduce((sum, installment) => sum + (Number(installment.amount) || 0), 0);
+
+            const rows = installmentsOfMonth.map((installment) => {
+                const client = findClient(installment.clientId);
+                const status = getInstallmentStatus(installment);
+                return `
+                    <tr>
+                        <td>${client ? escapeHTML(client.name) : "Cliente removido"}</td>
+                        <td>${client ? escapeHTML(client.benefit || "-") : "-"}</td>
+                        <td>${installment.total ? `${installment.number}/${installment.total}` : "Avulsa"}</td>
+                        <td>${formatCurrency(installment.amount)}</td>
+                        <td>${formatDate(installment.dueDate)}</td>
+                        <td>${escapeHTML(STATUS_LABELS[status])}</td>
+                    </tr>
+                `;
+            }).join("");
+
+            return `
+                <h3 style="margin:14px 0 4px">${monthKey ? formatMonthLabel(monthKey) : "Sem vencimento"} — Total: ${formatCurrency(monthTotal)}</h3>
+                <table>
+                    <thead>
+                        <tr><th>Cliente</th><th>Benefício</th><th>Parcela</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }).join("");
+    }
+
+    const rpvClients = appState.clients.filter((client) => Number(client.rpvValue) > 0);
+    let rpvBody = "";
+    if (rpvClients.length) {
+        const today = todayISO();
+        const rpvRows = rpvClients.map((client) => {
+            const isToday = client.rpvDate === today && !client.rpvReceived;
+            const statusLabel = client.rpvReceived ? "Recebido" : isToday ? "Receber hoje" : "Aguardando";
+            return `
+                <tr>
+                    <td>${escapeHTML(client.name)}</td>
+                    <td>${formatCurrency(client.rpvValue)}</td>
+                    <td>${client.rpvDate ? formatDate(client.rpvDate) : "Sem previsão"}</td>
+                    <td>${escapeHTML(statusLabel)}</td>
+                </tr>
+            `;
+        }).join("");
+
+        rpvBody = `
+            <h3 style="margin:18px 0 4px">RPVs</h3>
+            <table>
+                <thead>
+                    <tr><th>Cliente</th><th>Valor do RPV</th><th>Previsão</th><th>Status</th></tr>
+                </thead>
+                <tbody>${rpvRows}</tbody>
+            </table>
+        `;
+    }
+
+    const subtitleParts = [`Mês: ${escapeHTML(monthLabel)}`, `Status: ${escapeHTML(statusLabel)}`];
+    if (searchTerm) subtitleParts.push(`Busca: "${escapeHTML(searchTerm)}"`);
+    subtitleParts.push(`${filteredInstallments.length} parcela(s)`);
+
+    const win = window.open("", "_blank");
+    win.document.write(buildPrintDocument("Relatório de contratos", subtitleParts.join(" · "), `${summary}${installmentsBody}${rpvBody}`));
+    win.document.close();
+    win.focus();
+    win.print();
 }

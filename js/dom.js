@@ -85,10 +85,23 @@ export function cacheElements() {
     elements.dashContractsUpcoming = document.getElementById("dashContractsUpcoming");
     elements.dashContractsOverdue30 = document.getElementById("dashContractsOverdue30");
     elements.contractsFilter = document.getElementById("contractsFilter");
+    elements.contractsSearch = document.getElementById("contractsSearch");
+    elements.contractsMonthFilter = document.getElementById("contractsMonthFilter");
     elements.contractsTableBody = document.getElementById("contractsTableBody");
     elements.contractsEmptyState = document.getElementById("contractsEmptyState");
     elements.rpvTableBody = document.getElementById("rpvTableBody");
     elements.rpvEmptyState = document.getElementById("rpvEmptyState");
+    elements.installmentAddButton = document.getElementById("installmentAddButton");
+    elements.installmentModalOverlay = document.getElementById("installmentModalOverlay");
+    elements.installmentModalTitle = document.getElementById("installmentModalTitle");
+    elements.installmentClientField = document.getElementById("installmentClientField");
+    elements.installmentClientSelect = document.getElementById("installmentClientSelect");
+    elements.installmentValueInput = document.getElementById("installmentValueInput");
+    elements.installmentDueDateInput = document.getElementById("installmentDueDateInput");
+    elements.installmentModalWarning = document.getElementById("installmentModalWarning");
+    elements.installmentModalCancelButton = document.getElementById("installmentModalCancelButton");
+    elements.installmentModalSaveButton = document.getElementById("installmentModalSaveButton");
+    elements.printContractsReportButton = document.getElementById("printContractsReportButton");
     elements.eventForm = document.getElementById("eventForm");
     elements.eventType = document.getElementById("eventType");
     elements.eventDate = document.getElementById("eventDate");
@@ -128,11 +141,18 @@ export function cacheElements() {
     elements.financeDate = document.getElementById("financeDate");
     elements.financeClient = document.getElementById("financeClient");
     elements.financeDescription = document.getElementById("financeDescription");
+    elements.financeSearch = document.getElementById("financeSearch");
+    elements.financeMonthFilter = document.getElementById("financeMonthFilter");
     elements.financeTableBody = document.getElementById("financeTableBody");
     elements.financeEmptyState = document.getElementById("financeEmptyState");
     elements.feesTotal = document.getElementById("feesTotal");
     elements.paymentsTotal = document.getElementById("paymentsTotal");
     elements.receiptsTotal = document.getElementById("receiptsTotal");
+    elements.futureBalanceTotal = document.getElementById("futureBalanceTotal");
+    elements.futureBalanceCount = document.getElementById("futureBalanceCount");
+    elements.installmentsReceivableTotal = document.getElementById("installmentsReceivableTotal");
+    elements.installmentsReceivableCount = document.getElementById("installmentsReceivableCount");
+    elements.printFinanceReportButton = document.getElementById("printFinanceReportButton");
     elements.taskForm = document.getElementById("taskForm");
     elements.taskList = document.getElementById("taskList");
     elements.taskTitle = document.getElementById("taskTitle");
@@ -251,6 +271,8 @@ export function scheduleSidebarAutoCollapse(delay = 5000) {
 export function closeConfirmModal() {
     appState.pendingDeleteClientId = null;
     appState.pendingDeleteFinanceId = null;
+    appState.pendingDeleteInstallmentId = null;
+    appState.pendingClearRpvClientId = null;
     elements.confirmOverlay.classList.add("hidden");
 }
 

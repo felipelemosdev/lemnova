@@ -49,7 +49,8 @@ import {
 import {
     handleFinanceSubmit,
     handleFinanceTableClick,
-    renderFinance
+    renderFinance,
+    printFinanceReport
 } from "./finance.js";
 
 import {
@@ -86,7 +87,12 @@ import {
 import {
     renderContractsSection,
     handleContractsTableClick,
-    handleRpvTableClick
+    handleRpvTableClick,
+    openInstallmentModal,
+    closeInstallmentModal,
+    handleInstallmentModalOverlayClick,
+    handleInstallmentModalSave,
+    printContractsReport
 } from "./installments.js";
 
 import { printSection } from "./print.js";
@@ -196,14 +202,44 @@ function bindEvents() {
     elements.documentPreviewOverlay.addEventListener("click", handlePreviewOverlayClick);
     elements.financeForm.addEventListener("submit", handleFinanceSubmit);
     elements.financeTableBody.addEventListener("click", handleFinanceTableClick);
+    if (elements.financeSearch) {
+        elements.financeSearch.addEventListener("input", renderFinance);
+    }
+    if (elements.financeMonthFilter) {
+        elements.financeMonthFilter.addEventListener("change", renderFinance);
+    }
+    if (elements.printFinanceReportButton) {
+        elements.printFinanceReportButton.addEventListener("click", printFinanceReport);
+    }
     if (elements.contractsFilter) {
         elements.contractsFilter.addEventListener("change", renderContractsSection);
+    }
+    if (elements.contractsSearch) {
+        elements.contractsSearch.addEventListener("input", renderContractsSection);
+    }
+    if (elements.contractsMonthFilter) {
+        elements.contractsMonthFilter.addEventListener("change", renderContractsSection);
     }
     if (elements.contractsTableBody) {
         elements.contractsTableBody.addEventListener("click", handleContractsTableClick);
     }
     if (elements.rpvTableBody) {
         elements.rpvTableBody.addEventListener("click", handleRpvTableClick);
+    }
+    if (elements.installmentAddButton) {
+        elements.installmentAddButton.addEventListener("click", () => openInstallmentModal({ mode: "create" }));
+    }
+    if (elements.installmentModalCancelButton) {
+        elements.installmentModalCancelButton.addEventListener("click", closeInstallmentModal);
+    }
+    if (elements.installmentModalSaveButton) {
+        elements.installmentModalSaveButton.addEventListener("click", handleInstallmentModalSave);
+    }
+    if (elements.installmentModalOverlay) {
+        elements.installmentModalOverlay.addEventListener("click", handleInstallmentModalOverlayClick);
+    }
+    if (elements.printContractsReportButton) {
+        elements.printContractsReportButton.addEventListener("click", printContractsReport);
     }
     document.addEventListener("keydown", handleGlobalKeydown);
     elements.taskForm.addEventListener("submit", handleTaskSubmit);
@@ -385,6 +421,7 @@ function handleGlobalKeydown(event) {
     closeNotifPanel();
     closeNotificationDetail();
     closeContractModal();
+    closeInstallmentModal();
 }
 
 

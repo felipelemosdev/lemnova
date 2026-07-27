@@ -5,8 +5,8 @@
 import { appState, findClient } from "./state.js";
 import { elements } from "./dom.js";
 import { todayISO, formatDate, formatCurrency, escapeHTML } from "./utils.js";
-import { calculateFinanceTotals } from "./finance.js";
-import { renderContractIndicators } from "./installments.js";
+import { calculateFinanceTotals, calculateFutureFinanceTotals } from "./finance.js";
+import { renderContractIndicators, calculatePendingInstallmentsSummary } from "./installments.js";
 import { getSortedEvents } from "./agenda.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { renderAll } from "./main.js";
@@ -247,6 +247,26 @@ export function renderSummary() {
     elements.feesTotal.textContent = formatCurrency(totals.fees);
     elements.paymentsTotal.textContent = formatCurrency(totals.officeCosts);
     elements.receiptsTotal.textContent = formatCurrency(totals.balance);
+
+    const futureTotals = calculateFutureFinanceTotals();
+    if (elements.futureBalanceTotal) {
+        elements.futureBalanceTotal.textContent = formatCurrency(futureTotals.balance);
+    }
+    if (elements.futureBalanceCount) {
+        elements.futureBalanceCount.textContent = futureTotals.count
+            ? `${futureTotals.count} lançamento(s) previsto(s)`
+            : "Nenhum lançamento futuro";
+    }
+
+    const receivable = calculatePendingInstallmentsSummary();
+    if (elements.installmentsReceivableTotal) {
+        elements.installmentsReceivableTotal.textContent = formatCurrency(receivable.total);
+    }
+    if (elements.installmentsReceivableCount) {
+        elements.installmentsReceivableCount.textContent = receivable.count
+            ? `${receivable.count} parcela(s) · ${formatCurrency(receivable.overdueTotal)} vencida(s)`
+            : "Nenhuma parcela em aberto";
+    }
 
     renderContractIndicators();
     renderDashboardTasks();

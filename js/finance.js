@@ -1,12 +1,14 @@
 // js/finance.js
-// Módulo Financeiro: lançamentos (entradas/saídas), listagem, exclusão (com confirmação),
-// cálculo de totais (honorários, custos, saldo) e os helpers de categoria/fluxo usados
+// Módulo Financeiro: lançamentos (entradas/saídas), listagem com busca e filtro por mês
+// (agrupada por mês), exclusão (com confirmação), cálculo de totais realizados x
+// lançamentos futuros (honorários, custos, saldo) e os helpers de categoria/fluxo usados
 // também pelo dashboard.
 
 import { appState, findClient } from "./state.js";
 import { elements, closeConfirmModal } from "./dom.js";
 import { createId, todayISO, formatCurrency, formatDate, escapeHTML } from "./utils.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
+import { buildPrintDocument } from "./print.js";
 import { renderAll } from "./main.js";
 
 export async function handleFinanceSubmit(event) {
@@ -36,239 +38,132 @@ export async function handleFinanceSubmit(event) {
 }
 
 
-export function ensureFinancialScheduleForClient(client, previousClient = null) {
-    if (!client || client.status !== "Ativo") {
-        return false;
-    }
-
-    // Vincular ao contrato: usar contractValue e installmentsCount
-    const amount = Number(client.contractValue) || 0;
-    const totalInstallments = Math.max(1, Number(client.installmentsCount) || 1);
-    const firstDueDate = client.firstDueDate || "";
-    const contractId = getClientContractId(client);
-
-    if (!amount || !firstDueDate) {
-        return false;
-    }
-
-    const alreadyScheduled = appState.financialSchedule.some((item) => (
-        item.clientId === client.id && item.contractId === contractId
-    ));
-    const becameActive = !previousClient || previousClient.status !== "Ativo";
-    const scheduleChanged = previousClient && (
-        Number(previousClient.contractValue) !== amount
-        || Number(previousClient.installmentsCount) !== totalInstallments
-        || previousClient.firstDueDate !== firstDueDate
-        || getClientContractId(previousClient) !== contractId
-    );
-
-    if (alreadyScheduled && !scheduleChanged) {
-        return false;
-    }
-
-    if (alreadyScheduled && !becameActive && scheduleChanged) {
-        const hasPayments = appState.financialSchedule.some((item) => (
-            item.clientId === client.id && item.contractId === contractId && item.status === "paid"
-        ));
-        if (hasPayments) {
-            return false;
-        }
-    }
-
-    appState.financialSchedule = appState.financialSchedule.filter((item) => (
-        !(item.clientId === client.id && item.contractId === contractId && item.status !== "paid")
-    ));
-
-    const installmentAmount = roundCurrency(amount / totalInstallments);
-    const scheduleItems = Array.from({ length: totalInstallments }, (_, index) => {
-        const isLast = index === totalInstallments - 1;
-        const calculatedAmount = isLast
-            ? roundCurrency(amount - (installmentAmount * (totalInstallments - 1)))
-            : installmentAmount;
-
-        return normalizeScheduleItem({
-            id: createId(),
-            clientId: client.id,
-            contractId,
-            installment: index + 1,
-            totalInstallments,
-            dueDate: addMonths(firstDueDate, index),
-            amount: calculatedAmount,
-            status: "pending",
-            paidDate: "",
-            paymentMethod: ""
-        });
-    });
-
-    appState.financialSchedule.unshift(...scheduleItems);
-    return true;
+function getFinanceMonthKey(dateISO) {
+    return dateISO ? dateISO.slice(0, 7) : ""; // "YYYY-MM"
 }
 
 
-export async function receiveInstallment(installmentId, paymentMethod = "Recebimento") {
-    const paidDate = todayISO();
-    const installment = appState.financialSchedule.find((item) => item.id === installmentId);
-    if (!installment || installment.status === "paid") {
-        return;
-    }
-
-    const client = findClient(installment.clientId);
-    appState.financialSchedule = appState.financialSchedule.map((item) => (
-        item.id === installmentId
-            ? normalizeScheduleItem({ ...item, status: "paid", paidDate, paymentMethod })
-            : item
-    ));
-
-    appState.finance.unshift({
-        id: createId(),
-        type: "Entrada",
-        category: "Honorário",
-        contractType: installment.contractId,
-        amount: Number(installment.amount) || 0,
-        date: paidDate,
-        clientId: installment.clientId,
-        description: `Recebimento parcela ${installment.installment}/${installment.totalInstallments}${client ? ` - ${client.name}` : ""}`,
-        scheduleId: installment.id,
-        createdAt: new Date().toISOString()
-    });
-
-    await Promise.all([
-        saveStorage(STORAGE_KEYS.financialSchedule, appState.financialSchedule),
-        saveStorage(STORAGE_KEYS.finance, appState.finance)
-    ]);
-    renderAll();
+function formatMonthLabel(monthKey) {
+    const [year, month] = monthKey.split("-").map(Number);
+    const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(Date.UTC(year, month - 1, 1)));
+    return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 
-function getCurrentMonthISO() {
-    return todayISO().slice(0, 7); // "YYYY-MM"
+// Preenche o filtro de mês com todos os meses que têm lançamento, do mais recente para o
+// mais antigo, preservando a seleção atual sempre que ela continuar válida.
+export function populateFinanceMonthFilter() {
+    if (!elements.financeMonthFilter) return;
+
+    const previousValue = elements.financeMonthFilter.value || "all";
+    const monthKeys = [...new Set(appState.finance.map((entry) => getFinanceMonthKey(entry.date)).filter(Boolean))]
+        .sort((a, b) => b.localeCompare(a));
+
+    const options = ['<option value="all">Todos os meses</option>']
+        .concat(monthKeys.map((key) => `<option value="${key}">${formatMonthLabel(key)}</option>`));
+
+    elements.financeMonthFilter.innerHTML = options.join("");
+    elements.financeMonthFilter.value = monthKeys.includes(previousValue) || previousValue === "all" ? previousValue : "all";
 }
+
 
 function getFilteredFinanceEntries() {
-    const filter = elements.financeFilter ? elements.financeFilter.value : "current-month";
-    const sorted = [...appState.finance].sort((a, b) => b.date.localeCompare(a.date));
-    const currentMonth = getCurrentMonthISO();
+    const searchTerm = elements.financeSearch ? elements.financeSearch.value.trim().toLowerCase() : "";
+    const monthFilter = elements.financeMonthFilter ? elements.financeMonthFilter.value : "all";
 
-    if (filter === "all") {
-        return sorted;
-    }
-    if (filter === "current-month") {
-        return sorted.filter((entry) => entry.date.startsWith(currentMonth));
-    }
-    return sorted;
+    return appState.finance.filter((entry) => {
+        if (monthFilter !== "all" && getFinanceMonthKey(entry.date) !== monthFilter) {
+            return false;
+        }
+
+        if (!searchTerm) {
+            return true;
+        }
+
+        const client = findClient(entry.clientId);
+        const content = [
+            entry.description,
+            entry.category || inferFinanceCategory(entry),
+            entry.contractType,
+            entry.type,
+            client ? client.name : ""
+        ].join(" ").toLowerCase();
+
+        return content.includes(searchTerm);
+    });
 }
 
-function renderFutureEntriesInfo() {
-    if (!elements.futureEntriesInfo) return;
-    
-    const today = todayISO();
-    const futureEntries = appState.finance.filter((entry) => entry.date > today);
-    
-    if (futureEntries.length === 0) {
-        elements.futureEntriesInfo.innerHTML = `
-            <div style="padding: 12px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px; color: #2c3e50;">
-                <strong>📅 Lançamentos Futuros:</strong> Nenhum lançamento agendado para o futuro.
-            </div>
-        `;
+
+export function renderFinance() {
+    populateFinanceMonthFilter();
+
+    const filtered = getFilteredFinanceEntries();
+    elements.financeTableBody.innerHTML = "";
+    elements.financeEmptyState.classList.toggle("hidden", filtered.length > 0);
+
+    if (!filtered.length) {
         return;
     }
 
-    const futureTotal = futureEntries.reduce((sum, entry) => {
-        const flow = getFinanceFlow(entry);
-        return flow === "Entrada" ? sum + entry.amount : sum - entry.amount;
-    }, 0);
+    // Agrupa por mês (mês mais recente/futuro primeiro), com uma linha de subtotal por mês.
+    const monthKeys = [...new Set(filtered.map((entry) => getFinanceMonthKey(entry.date)))]
+        .sort((a, b) => b.localeCompare(a));
 
-    const entriesCount = futureEntries.filter((e) => getFinanceFlow(e) === "Entrada").length;
-    const exitsCount = futureEntries.filter((e) => getFinanceFlow(e) === "Saída").length;
+    monthKeys.forEach((monthKey) => {
+        const entriesOfMonth = filtered
+            .filter((entry) => getFinanceMonthKey(entry.date) === monthKey)
+            .sort((a, b) => b.date.localeCompare(a.date));
 
-    elements.futureEntriesInfo.innerHTML = `
-        <div style="padding: 12px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px; color: #2c3e50;">
-            <strong>📅 Lançamentos Futuros:</strong> 
-            ${entriesCount} entradas e ${exitsCount} saídas agendadas • 
-            <span style="font-weight: bold; color: ${futureTotal >= 0 ? '#27ae60' : '#e74c3c'};">
-                ${formatCurrency(futureTotal)}
-            </span>
-        </div>
-    `;
-}
+        const monthTotals = entriesOfMonth.reduce((totals, entry) => {
+            const amount = Number(entry.amount) || 0;
+            if (getFinanceFlow(entry) === "Entrada") {
+                totals.balance += amount;
+            } else {
+                totals.balance -= amount;
+            }
+            return totals;
+        }, { balance: 0 });
 
-export function renderFinance() {
-    renderFinanceSummary();
-    renderFinancialSchedule();
-    renderRpvTable();
-    elements.financeTableBody.innerHTML = "";
-    
-    const filteredEntries = getFilteredFinanceEntries();
-    elements.financeEmptyState.classList.toggle("hidden", filteredEntries.length > 0);
-
-    // Agrupar por mês
-    const groupedByMonth = {};
-    filteredEntries.forEach((entry) => {
-        const month = entry.date.slice(0, 7); // "YYYY-MM"
-        if (!groupedByMonth[month]) {
-            groupedByMonth[month] = [];
-        }
-        groupedByMonth[month].push(entry);
-    });
-
-    // Renderizar agrupado por mês
-    Object.keys(groupedByMonth).sort().reverse().forEach((month) => {
-        const monthEntries = groupedByMonth[month];
-        const monthTotal = monthEntries.reduce((sum, entry) => {
-            const flow = getFinanceFlow(entry);
-            return flow === "Entrada" ? sum + entry.amount : sum - entry.amount;
-        }, 0);
-
-        // Cabeçalho do mês
-        const monthHeaderRow = document.createElement("tr");
-        monthHeaderRow.className = "month-header-row";
-        monthHeaderRow.innerHTML = `
-            <td colspan="7" style="font-weight: bold; background-color: #f5f5f5; padding: 12px;">
-                📅 ${formatDate(month + "-01").split("/").slice(0, 2).join("/")} — 
-                <span style="color: #2c3e50;">Saldo: ${formatCurrency(monthTotal)}</span>
+        const headerRow = document.createElement("tr");
+        headerRow.innerHTML = `
+            <td colspan="8" style="font-weight:700">
+                ${monthKey ? formatMonthLabel(monthKey) : "Sem data"}
+                <span style="font-weight:400;color:var(--color-muted)"> · Saldo do mês: ${formatCurrency(monthTotals.balance)}</span>
             </td>
         `;
-        elements.financeTableBody.appendChild(monthHeaderRow);
+        elements.financeTableBody.appendChild(headerRow);
 
-        // Linhas de cada entrada
-        monthEntries.forEach((entry) => {
-            const client = findClient(entry.clientId);
-            const row = document.createElement("tr");
-            row.className = "finance-row";
-
-            row.innerHTML = `
-                <td>${createTypePill(entry.type)}</td>
-                <td>${escapeHTML(entry.category || inferFinanceCategory(entry))}</td>
-                <td>${entry.contractType ? `<span class="status-pill">${escapeHTML(entry.contractType)}</span>` : "—"}</td>
-                <td>
-                    <div class="transaction-cell">
-                        <strong>${escapeHTML(entry.description)}</strong>
-                        <span>${client ? escapeHTML(client.name) : "Sem cliente"}</span>
-                    </div>
-                </td>
-                <td>${formatCurrency(entry.amount)}</td>
-                <td>${formatDate(entry.date)}</td>
-                <td><button class="action-button danger" type="button" data-action="delete-finance" data-id="${entry.id}">Excluir</button></td>
-            `;
-            elements.financeTableBody.appendChild(row);
+        entriesOfMonth.forEach((entry) => {
+            elements.financeTableBody.appendChild(buildFinanceRow(entry));
         });
     });
+}
+
+
+function buildFinanceRow(entry) {
+    const client = findClient(entry.clientId);
+    const isFuture = entry.date > todayISO();
+    const row = document.createElement("tr");
+    row.innerHTML = `
+        <td>${createTypePill(entry.type)}</td>
+        <td>${escapeHTML(entry.category || inferFinanceCategory(entry))}</td>
+        <td>${entry.contractType ? `<span class="status-pill">${escapeHTML(entry.contractType)}</span>` : "—"}</td>
+        <td>
+            <div class="transaction-cell">
+                <strong>${escapeHTML(entry.description)}</strong>
+                <span>${client ? escapeHTML(client.name) : "Sem cliente"}</span>
+            </div>
+        </td>
+        <td>${formatCurrency(entry.amount)}</td>
+        <td>${formatDate(entry.date)}</td>
+        <td>${isFuture ? '<span class="task-pill medium">Previsto</span>' : '<span class="task-pill low">Realizado</span>'}</td>
+        <td><button class="action-button danger" type="button" data-action="delete-finance" data-id="${entry.id}">Excluir</button></td>
+    `;
+    return row;
 }
 
 
 export function handleFinanceTableClick(event) {
-    const receiveButton = event.target.closest("button[data-action='receive-installment']");
-    if (receiveButton) {
-        receiveInstallment(receiveButton.dataset.id);
-        return;
-    }
-
-    const tabButton = event.target.closest("button[data-finance-tab]");
-    if (tabButton) {
-        setFinanceTab(tabButton.dataset.financeTab);
-        return;
-    }
-
     const button = event.target.closest("button[data-action='delete-finance']");
     if (!button) {
         return;
@@ -276,6 +171,8 @@ export function handleFinanceTableClick(event) {
 
     appState.pendingDeleteFinanceId = button.dataset.id;
     appState.pendingDeleteClientId = null;
+    appState.pendingDeleteInstallmentId = null;
+    appState.pendingClearRpvClientId = null;
     document.getElementById("confirmTitle").textContent = "Excluir lançamento";
     document.getElementById("confirmText").textContent = "Esta ação removerá o gasto ou compra lançado por engano.";
     elements.confirmOverlay.classList.remove("hidden");
@@ -297,85 +194,58 @@ export async function confirmFinanceDelete() {
 }
 
 
+// Só considera lançamentos com data até hoje — lançamentos futuros (previstos) não entram
+// no saldo/honorários/custos "realizados" para não inflar o caixa com algo que ainda não
+// aconteceu. Veja calculateFutureFinanceTotals() para os valores previstos.
 export function calculateFinanceTotals() {
-    return appState.finance.reduce((totals, entry) => {
-        const flow = getFinanceFlow(entry);
-        const category = inferFinanceCategory(entry);
-        const amount = Number(entry.amount) || 0;
-
-        if (category === "Honorário") {
-            totals.fees += amount;
-        }
-
-        if (category === "Custo de escritório") {
-            totals.officeCosts += amount;
-        }
-
-        if (flow === "Entrada") {
-            totals.entries += amount;
-            totals.balance += amount;
-        }
-
-        if (flow === "Saída") {
-            totals.exits += amount;
-            totals.balance -= amount;
-        }
-
-        return totals;
-    }, {
-        fees: 0,
-        officeCosts: 0,
-        entries: 0,
-        exits: 0,
-        balance: 0
-    });
-}
-
-
-export function calculateFinancialScheduleSummary() {
     const today = todayISO();
-    return appState.financialSchedule.reduce((summary, rawItem) => {
-        const item = normalizeScheduleItem(rawItem);
-        const amount = Number(item.amount) || 0;
-        const status = item.status;
+    return appState.finance
+        .filter((entry) => entry.date <= today)
+        .reduce((totals, entry) => {
+            const flow = getFinanceFlow(entry);
+            const category = inferFinanceCategory(entry);
+            const amount = Number(entry.amount) || 0;
 
-        if (status === "paid") {
-            if (item.paidDate === today) {
-                summary.receivedToday += amount;
+            if (category === "Honorário") {
+                totals.fees += amount;
             }
-            return summary;
-        }
 
-        if (item.dueDate < today) {
-            summary.overdueContracts.add(`${item.clientId}:${item.contractId}`);
-            if (daysBetween(item.dueDate, today) > 30) {
-                summary.overdueMoreThan30 += 1;
+            if (category === "Custo de escritório") {
+                totals.officeCosts += amount;
             }
-        }
 
-        if (item.dueDate === today) {
-            summary.dueToday += 1;
-            summary.receiveToday += amount;
-        }
+            if (flow === "Entrada") {
+                totals.entries += amount;
+                totals.balance += amount;
+            }
 
-        if (item.dueDate > today) {
-            summary.upcoming += 1;
-        }
+            if (flow === "Saída") {
+                totals.exits += amount;
+                totals.balance -= amount;
+            }
 
-        return summary;
-    }, {
-        overdueContracts: new Set(),
-        dueToday: 0,
-        receiveToday: 0,
-        receivedToday: 0,
-        upcoming: 0,
-        overdueMoreThan30: 0
-    });
+            return totals;
+        }, {
+            fees: 0,
+            officeCosts: 0,
+            entries: 0,
+            exits: 0,
+            balance: 0
+        });
 }
 
 
-export function refreshFinancialScheduleStatuses() {
-    appState.financialSchedule = appState.financialSchedule.map(normalizeScheduleItem);
+// Lançamentos com data futura (ainda não realizados): saldo líquido previsto (entradas -
+// saídas) e a contagem de quantos existem, usados no card "Lançamentos futuros".
+export function calculateFutureFinanceTotals() {
+    const today = todayISO();
+    const futureEntries = appState.finance.filter((entry) => entry.date > today);
+
+    const balance = futureEntries.reduce((total, entry) => (
+        total + (getFinanceFlow(entry) === "Entrada" ? Number(entry.amount) || 0 : -(Number(entry.amount) || 0))
+    ), 0);
+
+    return { balance, count: futureEntries.length };
 }
 
 
@@ -412,228 +282,96 @@ export function createTypePill(type) {
 }
 
 
-function renderFinanceSummary() {
-    if (!elements.financialSummaryPanel) return;
-    const scheduleSummary = calculateFinancialScheduleSummary();
+// Relatório de impressão do Financeiro: respeita a busca e o filtro de mês que estiverem
+// ativos na tela (mesma lógica de getFilteredFinanceEntries), mostra o resumo de totais
+// no topo e a listagem agrupada por mês, sem formulário/filtros/botões de ação.
+export function printFinanceReport() {
+    const filtered = getFilteredFinanceEntries();
     const totals = calculateFinanceTotals();
+    const futureTotals = calculateFutureFinanceTotals();
 
-    if (elements.financeOverdueContracts) {
-        elements.financeOverdueContracts.textContent = scheduleSummary.overdueContracts.size;
-    }
-    if (elements.financeDueToday) {
-        elements.financeDueToday.textContent = scheduleSummary.dueToday;
-    }
-    if (elements.financeReceiveToday) {
-        elements.financeReceiveToday.textContent = formatCurrency(scheduleSummary.receiveToday);
-    }
-    if (elements.financeUpcoming) {
-        elements.financeUpcoming.textContent = scheduleSummary.upcoming;
-    }
-    if (elements.financeOverdue30) {
-        elements.financeOverdue30.textContent = scheduleSummary.overdueMoreThan30;
-    }
-    if (elements.feesTotal) {
-        elements.feesTotal.textContent = formatCurrency(totals.fees);
-    }
-    if (elements.paymentsTotal) {
-        elements.paymentsTotal.textContent = formatCurrency(totals.officeCosts);
-    }
-    if (elements.receiptsTotal) {
-        elements.receiptsTotal.textContent = formatCurrency(totals.balance);
-    }
-}
+    const monthFilterValue = elements.financeMonthFilter ? elements.financeMonthFilter.value : "all";
+    const monthLabel = monthFilterValue && monthFilterValue !== "all" ? formatMonthLabel(monthFilterValue) : "Todos os meses";
+    const searchTerm = elements.financeSearch ? elements.financeSearch.value.trim() : "";
 
+    const summary = `
+        <div class="finance-overview">
+            <article class="summary-card">
+                <span>Honorários</span>
+                <strong>${formatCurrency(totals.fees)}</strong>
+                <p>Entradas realizadas</p>
+            </article>
+            <article class="summary-card">
+                <span>Custo de escritório</span>
+                <strong>${formatCurrency(totals.officeCosts)}</strong>
+                <p>Saídas realizadas</p>
+            </article>
+            <article class="summary-card">
+                <span>Saldo do caixa</span>
+                <strong>${formatCurrency(totals.balance)}</strong>
+                <p>Realizado até hoje</p>
+            </article>
+            <article class="summary-card">
+                <span>Lançamentos futuros</span>
+                <strong>${formatCurrency(futureTotals.balance)}</strong>
+                <p>${futureTotals.count} lançamento(s) previsto(s)</p>
+            </article>
+        </div>
+    `;
 
-function renderFinancialSchedule() {
-    if (!elements.financialScheduleTableBody) return;
-    const scheduleItems = [...appState.financialSchedule]
-        .map(normalizeScheduleItem)
-        .sort((first, second) => first.dueDate.localeCompare(second.dueDate));
+    let body;
+    if (!filtered.length) {
+        body = '<p style="color:#667085">Nenhuma movimentação encontrada para os filtros aplicados.</p>';
+    } else {
+        const monthKeys = [...new Set(filtered.map((entry) => getFinanceMonthKey(entry.date)))]
+            .sort((a, b) => b.localeCompare(a));
 
-    elements.financialScheduleTableBody.innerHTML = "";
-    elements.financialScheduleEmpty.classList.toggle("hidden", scheduleItems.length > 0);
+        const groups = monthKeys.map((monthKey) => {
+            const entriesOfMonth = filtered
+                .filter((entry) => getFinanceMonthKey(entry.date) === monthKey)
+                .sort((a, b) => b.date.localeCompare(a.date));
 
-    // Agrupar por mês
-    const groupedByMonth = {};
-    scheduleItems.forEach((item) => {
-        const month = item.dueDate.slice(0, 7); // "YYYY-MM"
-        if (!groupedByMonth[month]) {
-            groupedByMonth[month] = [];
-        }
-        groupedByMonth[month].push(item);
-    });
+            const monthBalance = entriesOfMonth.reduce((sum, entry) => (
+                sum + (getFinanceFlow(entry) === "Entrada" ? Number(entry.amount) || 0 : -(Number(entry.amount) || 0))
+            ), 0);
 
-    // Renderizar agrupado por mês
-    Object.keys(groupedByMonth).sort().forEach((month) => {
-        const monthItems = groupedByMonth[month];
-        const monthTotal = monthItems.reduce((sum, item) => sum + Number(item.amount), 0);
+            const rows = entriesOfMonth.map((entry) => {
+                const client = findClient(entry.clientId);
+                const isFuture = entry.date > todayISO();
+                return `
+                    <tr>
+                        <td>${escapeHTML(getFinanceFlow(entry))}</td>
+                        <td>${escapeHTML(entry.category || inferFinanceCategory(entry))}</td>
+                        <td>${escapeHTML(entry.description)}</td>
+                        <td>${client ? escapeHTML(client.name) : "-"}</td>
+                        <td>${formatCurrency(entry.amount)}</td>
+                        <td>${formatDate(entry.date)}</td>
+                        <td>${isFuture ? "Previsto" : "Realizado"}</td>
+                    </tr>
+                `;
+            }).join("");
 
-        // Cabeçalho do mês
-        const monthHeaderRow = document.createElement("tr");
-        monthHeaderRow.className = "month-header-row";
-        monthHeaderRow.innerHTML = `
-            <td colspan="8" style="font-weight: bold; background-color: #f5f5f5; padding: 12px;">
-                📅 ${formatDate(month + "-01").split("/").slice(0, 2).join("/")} — 
-                <span style="color: #2c3e50;">Total: ${formatCurrency(monthTotal)}</span>
-            </td>
-        `;
-        elements.financialScheduleTableBody.appendChild(monthHeaderRow);
-
-        // Linhas de cada item
-        monthItems.forEach((item) => {
-            const client = findClient(item.clientId);
-            const row = document.createElement("tr");
-            row.className = "schedule-row";
-
-            row.innerHTML = `
-                <td>${client ? escapeHTML(client.name) : "Sem cliente"}</td>
-                <td>${escapeHTML(item.contractId || "Contrato")}</td>
-                <td>${item.installment}/${item.totalInstallments}</td>
-                <td>${formatCurrency(item.amount)}</td>
-                <td>${formatDate(item.dueDate)}</td>
-                <td>${createScheduleStatusPill(item.status)}</td>
-                <td>
-                    ${item.status === "paid"
-                        ? `<span>${formatDate(item.paidDate)}</span>`
-                        : `<button class="action-button" type="button" data-action="receive-installment" data-id="${item.id}">Receber</button>`}
-                </td>
+            return `
+                <h3 style="margin:14px 0 4px">${monthKey ? formatMonthLabel(monthKey) : "Sem data"} — Saldo do mês: ${formatCurrency(monthBalance)}</h3>
+                <table>
+                    <thead>
+                        <tr><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Cliente</th><th>Valor</th><th>Data</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
             `;
-            elements.financialScheduleTableBody.appendChild(row);
-        });
-    });
-}
+        }).join("");
 
-
-function renderRpvTable() {
-    if (!elements.rpvTableBody) return;
-    const rpvItems = appState.rpv || [];
-    elements.rpvTableBody.innerHTML = "";
-    elements.rpvEmptyState.classList.toggle("hidden", rpvItems.length > 0);
-
-    const today = todayISO();
-
-    // Agrupar por mês
-    const groupedByMonth = {};
-    rpvItems.forEach((item) => {
-        const month = item.expectedDate ? item.expectedDate.slice(0, 7) : "sem-data";
-        if (!groupedByMonth[month]) {
-            groupedByMonth[month] = [];
-        }
-        groupedByMonth[month].push(item);
-    });
-
-    // Renderizar agrupado por mês
-    Object.keys(groupedByMonth).sort().forEach((month) => {
-        const monthItems = groupedByMonth[month];
-        const monthTotal = monthItems.reduce((sum, item) => sum + Number(item.expectedAmount || 0), 0);
-
-        // Cabeçalho do mês
-        const monthHeaderRow = document.createElement("tr");
-        monthHeaderRow.className = "month-header-row";
-        const monthLabel = month === "sem-data" 
-            ? "Sem previsão" 
-            : `${formatDate(month + "-01").split("/").slice(0, 2).join("/")}`;
-        monthHeaderRow.innerHTML = `
-            <td colspan="8" style="font-weight: bold; background-color: #f5f5f5; padding: 12px;">
-                📅 ${monthLabel} — 
-                <span style="color: #2c3e50;">Total: ${formatCurrency(monthTotal)}</span>
-            </td>
-        `;
-        elements.rpvTableBody.appendChild(monthHeaderRow);
-
-        // Linhas de cada item RPV
-        monthItems.forEach((item) => {
-            const client = findClient(item.clientId);
-            const isFuture = item.expectedDate && item.expectedDate > today && !item.receivedDate;
-            let statusDisplay = createScheduleStatusPill(item.status || "pending");
-            
-            if (isFuture && (!item.status || item.status === "pending")) {
-                statusDisplay = '<span class="status-pill">Lançamento futuro</span>';
-            }
-
-            const row = document.createElement("tr");
-            row.className = "rpv-row";
-
-            row.innerHTML = `
-                <td>${client ? escapeHTML(client.name) : escapeHTML(item.clientName || "Sem cliente")}</td>
-                <td>${escapeHTML(item.process || "")}</td>
-                <td>${formatCurrency(item.expectedAmount)}</td>
-                <td>${formatCurrency(item.receivedAmount)}</td>
-                <td>${formatDate(item.expectedDate)}</td>
-                <td>${formatDate(item.receivedDate)}</td>
-                <td>${statusDisplay}</td>
-                <td>${escapeHTML(item.notes || "")}</td>
-            `;
-            elements.rpvTableBody.appendChild(row);
-        });
-    });
-}
-
-
-function setFinanceTab(tabName) {
-    if (!elements.financeTabButtons || !elements.financeTabPanels) return;
-    elements.financeTabButtons.forEach((button) => {
-        button.classList.toggle("active", button.dataset.financeTab === tabName);
-    });
-    elements.financeTabPanels.forEach((panel) => {
-        panel.classList.toggle("hidden", panel.dataset.financePanel !== tabName);
-    });
-}
-
-
-function normalizeScheduleItem(item) {
-    if (!item) return item;
-    if (item.status === "paid") {
-        return item;
+        body = `${summary}${groups}`;
     }
 
-    const today = todayISO();
-    let status = "pending";
-    if (item.dueDate === today) {
-        status = "today";
-    } else if (item.dueDate && item.dueDate < today) {
-        status = "overdue";
-    }
+    const subtitleParts = [`Mês: ${escapeHTML(monthLabel)}`];
+    if (searchTerm) subtitleParts.push(`Busca: "${escapeHTML(searchTerm)}"`);
+    subtitleParts.push(`${filtered.length} lançamento(s)`);
 
-    return { ...item, status };
-}
-
-
-function createScheduleStatusPill(status) {
-    const labels = {
-        pending: "Pendente",
-        today: "Hoje",
-        overdue: "Vencido",
-        paid: "Pago"
-    };
-    const classes = {
-        pending: "review",
-        today: "today",
-        overdue: "overdue",
-        paid: ""
-    };
-    return `<span class="status-pill ${classes[status] || ""}">${escapeHTML(labels[status] || status)}</span>`;
-}
-
-
-function getClientContractId(client) {
-    return client.contractId || client.benefit || client.area || "Contrato";
-}
-
-
-function addMonths(dateValue, months) {
-    const [year, month, day] = dateValue.split("-").map(Number);
-    const date = new Date(Date.UTC(year, month - 1 + months, day));
-    return date.toISOString().slice(0, 10);
-}
-
-
-function daysBetween(startDate, endDate) {
-    const dayMs = 24 * 60 * 60 * 1000;
-    return Math.floor((new Date(`${endDate}T00:00:00Z`) - new Date(`${startDate}T00:00:00Z`)) / dayMs);
-}
-
-
-function roundCurrency(value) {
-    return Math.round((Number(value) || 0) * 100) / 100;
+    const win = window.open("", "_blank");
+    win.document.write(buildPrintDocument("Relatório financeiro", subtitleParts.join(" · "), body));
+    win.document.close();
+    win.focus();
+    win.print();
 }

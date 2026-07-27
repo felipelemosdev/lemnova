@@ -23,7 +23,7 @@ import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { openDocumentPreview } from "./documents.js";
 import { confirmFinanceDelete } from "./finance.js";
 import { openContractModal } from "./contract.js";
-import { maybeGenerateInstallmentsOnActivation } from "./installments.js";
+import { maybeGenerateInstallmentsOnActivation, confirmInstallmentDelete, confirmRpvClear } from "./installments.js";
 import { renderAll } from "./main.js";
 
 export async function handleClientSubmit(event) {
@@ -246,6 +246,8 @@ export function fillClientForm(clientId) {
 export function deleteClient(clientId) {
     appState.pendingDeleteClientId = clientId;
     appState.pendingDeleteFinanceId = null;
+    appState.pendingDeleteInstallmentId = null;
+    appState.pendingClearRpvClientId = null;
     document.getElementById("confirmTitle").textContent = "Excluir cliente";
     document.getElementById("confirmText").textContent = "Esta ação removerá o cliente da sua base.";
     elements.confirmOverlay.classList.remove("hidden");
@@ -256,6 +258,14 @@ export function deleteClient(clientId) {
 export async function confirmClientDelete() {
     if (appState.pendingDeleteFinanceId) {
         await confirmFinanceDelete();
+        return;
+    }
+    if (appState.pendingDeleteInstallmentId) {
+        await confirmInstallmentDelete();
+        return;
+    }
+    if (appState.pendingClearRpvClientId) {
+        await confirmRpvClear();
         return;
     }
 
@@ -272,6 +282,8 @@ export async function confirmClientDelete() {
     appState.finance = appState.finance.map((entry) => (
         entry.clientId === clientId ? { ...entry, clientId: "" } : entry
     ));
+    appState.installments = appState.installments.filter((installment) => installment.clientId !== clientId);
+    await saveStorage(STORAGE_KEYS.installments, appState.installments);
 
     await persistAll();
     resetClientForm();

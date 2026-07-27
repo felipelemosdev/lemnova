@@ -647,17 +647,27 @@
                         <article class="summary-card">
                             <span>Honorários</span>
                             <strong id="feesTotal">R$ 0,00</strong>
-                            <p>Entradas por serviços</p>
+                            <p>Entradas realizadas</p>
                         </article>
                         <article class="summary-card">
                             <span>Custo de escritório</span>
                             <strong id="paymentsTotal">R$ 0,00</strong>
-                            <p>Saídas operacionais</p>
+                            <p>Saídas realizadas</p>
                         </article>
                         <article class="summary-card">
                             <span>Saldo do caixa</span>
                             <strong id="receiptsTotal">R$ 0,00</strong>
-                            <p>Entradas menos saídas</p>
+                            <p>Realizado até hoje</p>
+                        </article>
+                        <article class="summary-card">
+                            <span>Lançamentos futuros</span>
+                            <strong id="futureBalanceTotal">R$ 0,00</strong>
+                            <p id="futureBalanceCount">0 lançamento(s) previsto(s)</p>
+                        </article>
+                        <article class="summary-card">
+                            <span>Parcelas a receber</span>
+                            <strong id="installmentsReceivableTotal">R$ 0,00</strong>
+                            <p id="installmentsReceivableCount">0 parcela(s) em aberto</p>
                         </article>
                     </div>
 
@@ -716,6 +726,7 @@
                                 <span>Data</span>
                                 <input id="financeDate" type="date" required>
                             </label>
+                            <p class="field-hint full-width">Use uma data futura para lançar algo já previsto (ex.: parcela a receber, pagamento agendado) — ele entra em "Lançamentos futuros" e só conta no saldo quando a data chegar.</p>
 
                             <label class="field">
                                 <span>Cliente</span>
@@ -738,6 +749,19 @@
                                     <p class="eyebrow">Controle financeiro</p>
                                     <h3>Movimentações</h3>
                                 </div>
+                                <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+                                    <label class="field" style="min-width:220px">
+                                        <span>Buscar</span>
+                                        <input id="financeSearch" type="search" placeholder="Descrição, cliente, categoria...">
+                                    </label>
+                                    <label class="field" style="min-width:200px">
+                                        <span>Mês</span>
+                                        <select id="financeMonthFilter">
+                                            <option value="all">Todos os meses</option>
+                                        </select>
+                                    </label>
+                                    <button id="printFinanceReportButton" class="btn btn-ghost btn-print" type="button">🖨 Imprimir relatório</button>
+                                </div>
                             </div>
 
                             <div class="table-wrap">
@@ -750,6 +774,7 @@
                                             <th>Descrição</th>
                                             <th>Valor</th>
                                             <th>Data</th>
+                                            <th>Status</th>
                                             <th>Ações</th>
                                         </tr>
                                     </thead>
@@ -769,14 +794,30 @@
                                 <p class="eyebrow">Controle de parcelas</p>
                                 <h3>Vencimentos dos contratos</h3>
                             </div>
-                            <label class="field" style="min-width:220px">
-                                <span>Filtrar</span>
-                                <select id="contractsFilter">
-                                    <option value="pending">Em aberto (vencidos, hoje e a vencer)</option>
-                                    <option value="overdue">Somente vencidos</option>
-                                    <option value="all">Todos (inclui pagas)</option>
-                                </select>
-                            </label>
+                            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+                                <label class="field" style="min-width:220px">
+                                    <span>Buscar cliente</span>
+                                    <input id="contractsSearch" type="search" placeholder="Nome do cliente...">
+                                </label>
+                                <label class="field" style="min-width:200px">
+                                    <span>Mês</span>
+                                    <select id="contractsMonthFilter">
+                                        <option value="all">Todos os meses</option>
+                                    </select>
+                                </label>
+                                <label class="field" style="min-width:220px">
+                                    <span>Status</span>
+                                    <select id="contractsFilter">
+                                        <option value="pending">Em aberto (vencidos, hoje e a vencer)</option>
+                                        <option value="overdue">Vencidos</option>
+                                        <option value="today">Vencendo hoje</option>
+                                        <option value="upcoming">A vencer</option>
+                                        <option value="all">Todos (inclui pagas)</option>
+                                    </select>
+                                </label>
+                                <button id="installmentAddButton" class="btn btn-primary" type="button">+ Nova parcela</button>
+                                <button id="printContractsReportButton" class="btn btn-ghost btn-print" type="button">🖨 Imprimir relatório</button>
+                            </div>
                         </div>
 
                         <div class="table-wrap">
@@ -1075,6 +1116,37 @@
                 <div class="modal-actions">
                     <button id="contractCancelButton" class="btn btn-ghost" type="button">Cancelar</button>
                     <button id="contractGenerateButton" class="btn btn-primary" type="button">🖨 Gerar e imprimir</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de nova/editar parcela de contrato -->
+        <div id="installmentModalOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="installmentModalTitle">
+            <div class="modal-panel">
+                <div>
+                    <p class="eyebrow">Contratos</p>
+                    <h3 id="installmentModalTitle">Nova parcela</h3>
+
+                    <label class="field" id="installmentClientField" style="margin-top:12px">
+                        <span>Cliente</span>
+                        <select id="installmentClientSelect"></select>
+                    </label>
+
+                    <label class="field" style="margin-top:12px">
+                        <span>Valor (R$)</span>
+                        <input id="installmentValueInput" type="number" min="0" step="0.01" placeholder="0,00">
+                    </label>
+
+                    <label class="field" style="margin-top:12px">
+                        <span>Vencimento</span>
+                        <input id="installmentDueDateInput" type="date">
+                    </label>
+
+                    <p id="installmentModalWarning" class="hidden" style="color:var(--color-danger);font-size:0.8rem;margin-top:10px"></p>
+                </div>
+                <div class="modal-actions">
+                    <button id="installmentModalCancelButton" class="btn btn-ghost" type="button">Cancelar</button>
+                    <button id="installmentModalSaveButton" class="btn btn-primary" type="button">Salvar</button>
                 </div>
             </div>
         </div>
