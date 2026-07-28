@@ -62,6 +62,7 @@ export function cacheElements() {
     elements.clientStatus = document.getElementById("clientStatus");
     elements.clientContractValue = document.getElementById("clientContractValue");
     elements.clientInstallmentsCount = document.getElementById("clientInstallmentsCount");
+    elements.clientFirstPaymentDate = document.getElementById("clientFirstPaymentDate");
     elements.clientRpvValue = document.getElementById("clientRpvValue");
     elements.clientRpvDate = document.getElementById("clientRpvDate");
     elements.clientNotes = document.getElementById("clientNotes");
@@ -160,6 +161,7 @@ export function cacheElements() {
     elements.taskPriority = document.getElementById("taskPriority");
     elements.taskDueDate = document.getElementById("taskDueDate");
     elements.taskDescription = document.getElementById("taskDescription");
+    elements.taskFrom = document.getElementById("taskFrom");
     elements.taskClient = document.getElementById("taskClient");
     elements.taskAlert = document.getElementById("taskAlert");
     elements.taskOpenCount = document.getElementById("taskOpenCount");
@@ -175,12 +177,16 @@ export function cacheElements() {
     elements.taskReplyOverlay = document.getElementById("taskReplyOverlay");
     elements.taskReplyTitle = document.getElementById("taskReplyTitle");
     elements.taskReplySubtitle = document.getElementById("taskReplySubtitle");
+    elements.taskReplyAvatar = document.getElementById("taskReplyAvatar");
     elements.replyResponsible = document.getElementById("replyResponsible");
     elements.replyText = document.getElementById("replyText");
     elements.replyPdf = document.getElementById("replyPdf");
     elements.replyPdfName = document.getElementById("replyPdfName");
     elements.taskReplyHistory = document.getElementById("taskReplyHistory");
     elements.taskReplyCompleteButton = document.getElementById("taskReplyCompleteButton");
+    elements.chatRoleButtons = document.getElementById("chatRoleButtons");
+    elements.chatRoleFromButton = document.getElementById("chatRoleFromButton");
+    elements.chatRoleToButton = document.getElementById("chatRoleToButton");
     elements.dashCalendarWidget = document.getElementById("dashCalendarWidget");
     elements.notifButton = document.getElementById("notifButton");
     elements.notifPanel = document.getElementById("notifPanel");
@@ -188,7 +194,11 @@ export function cacheElements() {
     elements.notifList = document.getElementById("notifList");
     elements.notifWrap = document.querySelector(".notif-wrap");
     elements.emailButton = document.getElementById("emailButton");
-    elements.whatsappButton = document.getElementById("whatsappButton");
+    elements.messagesButton = document.getElementById("messagesButton");
+    elements.messagesPanel = document.getElementById("messagesPanel");
+    elements.messagesBadge = document.getElementById("messagesBadge");
+    elements.messagesList = document.getElementById("messagesList");
+    elements.messagesWrap = document.querySelector(".msg-wrap");
     elements.topbarPrintButton = document.getElementById("topbarPrintButton");
     elements.notifDetailOverlay = document.getElementById("notifDetailOverlay");
     elements.notifDetailEyebrow = document.getElementById("notifDetailEyebrow");
@@ -196,6 +206,7 @@ export function cacheElements() {
     elements.notifDetailText = document.getElementById("notifDetailText");
     elements.notifDetailCloseButton = document.getElementById("notifDetailCloseButton");
     elements.notifDetailCompleteButton = document.getElementById("notifDetailCompleteButton");
+    elements.notifDetailConfirmReceiptButton = document.getElementById("notifDetailConfirmReceiptButton");
     elements.printTasksReportButton = document.getElementById("printTasksReportButton");
     elements.contractOverlay = document.getElementById("contractOverlay");
     elements.contractModalSubtitle = document.getElementById("contractModalSubtitle");
@@ -295,5 +306,27 @@ export function handleOutsideNotifClick(event) {
     }
     if (!elements.notifWrap.contains(event.target)) {
         closeNotifPanel();
+    }
+}
+
+
+export function toggleMessagesPanel() {
+    if (!elements.messagesPanel) return;
+    elements.messagesPanel.classList.toggle("hidden");
+}
+
+
+export function closeMessagesPanel() {
+    if (!elements.messagesPanel) return;
+    elements.messagesPanel.classList.add("hidden");
+}
+
+
+export function handleOutsideMessagesClick(event) {
+    if (!elements.messagesWrap || !elements.messagesPanel || elements.messagesPanel.classList.contains("hidden")) {
+        return;
+    }
+    if (!elements.messagesWrap.contains(event.target)) {
+        closeMessagesPanel();
     }
 }

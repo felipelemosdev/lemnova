@@ -4,7 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lemnova | CRM Jurídico</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/clients.css">
+    <link rel="stylesheet" href="css/documents.css">
+    <link rel="stylesheet" href="css/tasks.css">
+    <link rel="stylesheet" href="css/kits.css">
+    <link rel="stylesheet" href="css/chat-messages.css">
+    <link rel="stylesheet" href="css/print.css">
+    <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
     <div id="app" class="app-shell">
@@ -108,7 +119,16 @@
                             <!-- * BOTÃO CREDITO *<span class="credit-chip">2026</span>-->
                         </div>
                         <button id="emailButton" class="icon-button quick-action-button" type="button" aria-label="Abrir e-mail" title="E-mail (em breve)">✉️</button>
-                        <button id="whatsappButton" class="icon-button quick-action-button" type="button" aria-label="Abrir WhatsApp" title="WhatsApp (em breve)">💬</button>
+                        <div class="msg-wrap">
+                            <button id="messagesButton" class="icon-button quick-action-button" type="button" aria-label="Mensagens internas" title="Mensagens internas">
+                                💬
+                                <span id="messagesBadge" class="notif-badge hidden">0</span>
+                            </button>
+                            <div id="messagesPanel" class="notif-panel hidden">
+                                <div class="notif-panel-header">Mensagens internas</div>
+                                <div id="messagesList" class="notif-panel-body"></div>
+                            </div>
+                        </div>
                         <button id="topbarPrintButton" class="icon-button quick-action-button" type="button" aria-label="Imprimir seção atual" title="Imprimir">🖨</button>
                         <div class="notif-wrap">
                             <button id="notifButton" class="icon-button notif-button" type="button" aria-label="Notificações">
@@ -486,6 +506,11 @@
                             </label>
 
                             <label class="field">
+                                <span>Data do 1º pagamento</span>
+                                <input id="clientFirstPaymentDate" type="date">
+                            </label>
+
+                            <label class="field">
                                 <span>RPV — valor previsto (R$)</span>
                                 <input id="clientRpvValue" type="number" min="0" step="0.01" placeholder="Deixe em branco se não houver">
                             </label>
@@ -495,7 +520,7 @@
                                 <input id="clientRpvDate" type="date">
                             </label>
 
-                            <p class="field-hint full-width">Ao salvar o cliente com status <strong>Ativo</strong> pela primeira vez, as parcelas do contrato são geradas automaticamente (valor ÷ nº de parcelas, uma por mês). O RPV não entra nas parcelas: fica em aberto até ser marcado como recebido na aba Contratos.</p>
+                            <p class="field-hint full-width">Ao salvar o cliente com status <strong>Ativo</strong> pela primeira vez, as parcelas do contrato são geradas automaticamente (valor ÷ nº de parcelas). A 1ª parcela vence na "Data do 1º pagamento" informada e as seguintes são lançadas automaticamente no mesmo dia dos meses seguintes (ex: 1º pagamento 01/08, 2º 01/09...). Se a data não for informada, a 1ª parcela vence 1 mês a partir de hoje. O RPV não entra nas parcelas: fica em aberto até ser marcado como recebido na aba Contratos.</p>
 
                             <label class="field full-width">
                                 <span>Anexar arquivo PDF</span>
@@ -961,7 +986,12 @@
                             </label>
 
                             <label class="field">
-                                <span>Responsável</span>
+                                <span>De (quem está enviando/solicitando)</span>
+                                <input id="taskFrom" type="text" placeholder="Nome de quem está atribuindo a tarefa">
+                            </label>
+
+                            <label class="field">
+                                <span>Para (responsável pela tarefa)</span>
                                 <input id="taskResponsible" type="text" placeholder="Nome do responsável">
                             </label>
 
@@ -1018,43 +1048,49 @@
                         </section>
                     </div>
 
-                    <!-- Modal de resposta de tarefa -->
+                    <!-- Modal de resposta de tarefa (chat interno estilo mensageiro) -->
                     <div id="taskReplyOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="taskReplyTitle">
-                        <div class="modal-panel task-reply-modal">
-                            <div class="preview-header">
-                                <div>
-                                    <p class="eyebrow">Resposta</p>
-                                    <h3 id="taskReplyTitle">Responder tarefa</h3>
-                                    <p id="taskReplySubtitle" style="color:var(--color-muted);font-size:0.9rem;margin:0"></p>
+                        <div class="modal-panel task-reply-modal chat-modal">
+                            <div class="preview-header chat-header">
+                                <div class="chat-header-info">
+                                    <div class="chat-avatar" id="taskReplyAvatar">?</div>
+                                    <div>
+                                        <p class="eyebrow">Conversa da tarefa</p>
+                                        <h3 id="taskReplyTitle">Responder tarefa</h3>
+                                        <p id="taskReplySubtitle" class="chat-subtitle"></p>
+                                    </div>
                                 </div>
                                 <button class="icon-button modal-close" type="button" onclick="closeTaskReply()" aria-label="Fechar">×</button>
                             </div>
 
-                            <div class="task-reply-body">
-                                <label class="field">
-                                    <span>Responsável pela resposta</span>
-                                    <input id="replyResponsible" type="text" placeholder="Nome de quem está respondendo">
-                                </label>
+                            <div id="taskReplyHistory" class="chat-thread"></div>
 
-                                <label class="field">
-                                    <span>Texto da resposta</span>
-                                    <textarea id="replyText" rows="5" placeholder="Descreva o andamento, resultado ou observações desta tarefa..."></textarea>
-                                </label>
+                            <div class="chat-compose">
+                                <div class="chat-role-row">
+                                    <span class="chat-role-label">Enviar como:</span>
+                                    <div class="chat-role-buttons" id="chatRoleButtons">
+                                        <button type="button" class="chat-role-chip" id="chatRoleFromButton" data-role="from">De</button>
+                                        <button type="button" class="chat-role-chip" id="chatRoleToButton" data-role="to">Para</button>
+                                    </div>
+                                    <input id="replyResponsible" type="text" placeholder="Nome de quem está respondendo" class="chat-author-input">
+                                </div>
 
-                                <label class="field">
-                                    <span>Anexar PDF (opcional)</span>
-                                    <input id="replyPdf" type="file" accept=".pdf,application/pdf">
-                                    <small id="replyPdfName" style="color:var(--color-muted);margin-top:4px"></small>
-                                </label>
+                                <div class="chat-input-row">
+                                    <textarea id="replyText" rows="2" placeholder="Digite uma mensagem..." class="chat-textarea"></textarea>
+                                    <button class="btn btn-primary chat-send-button" type="button" onclick="saveTaskReply()" aria-label="Enviar">➤</button>
+                                </div>
 
-                                <div id="taskReplyHistory" class="task-reply-history"></div>
-                            </div>
-
-                            <div class="modal-actions">
-                                <button class="btn btn-ghost" type="button" onclick="printTaskReply()">🖨 Imprimir resposta</button>
-                                <button class="btn btn-ghost" type="button" onclick="closeTaskReply()">Fechar</button>
-                                <button id="taskReplyCompleteButton" class="btn btn-success" type="button" onclick="completeTaskFromReply()">✓ CONCLUÍDO</button>
-                                <button class="btn btn-primary" type="button" onclick="saveTaskReply()">Salvar resposta</button>
+                                <div class="chat-toolbar">
+                                    <label class="chat-attach-label" title="Anexar PDF">
+                                        📎 <span id="replyPdfName">Anexar PDF</span>
+                                        <input id="replyPdf" type="file" accept=".pdf,application/pdf" class="chat-file-input">
+                                    </label>
+                                    <div class="chat-toolbar-actions">
+                                        <button class="btn btn-ghost btn-print" type="button" onclick="printTaskReply()">🖨 Imprimir</button>
+                                        <button id="taskReplyCompleteButton" class="btn btn-success" type="button" onclick="completeTaskFromReply()">✓ CONCLUÍDO</button>
+                                        <button class="btn btn-ghost" type="button" onclick="closeTaskReply()">Fechar</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1089,6 +1125,7 @@
                 <div class="modal-actions">
                     <button id="notifDetailCloseButton" class="btn btn-ghost" type="button">Fechar</button>
                     <button id="notifDetailCompleteButton" class="btn btn-success hidden" type="button">✓ CONCLUÍDO</button>
+                    <button id="notifDetailConfirmReceiptButton" class="btn btn-success hidden" type="button">✓ Confirmar recebimento</button>
                 </div>
             </div>
         </div>
@@ -1168,7 +1205,7 @@
     </div>
     <footer class="footer">
     <span>Lemnova 2026 • BETA</span>
-    <span class="footer-right">Versão 0.1.50 • Sistema interno</span>
+    <span class="footer-right">Versão 0.2.0 • Sistema interno</span>
 </footer>
 
    

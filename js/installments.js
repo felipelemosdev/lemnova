@@ -16,6 +16,9 @@ const OVERDUE_30_DAYS_THRESHOLD = 30;
 // Gera as parcelas mensais de um contrato assim que o cliente é salvo com status "Ativo"
 // pela primeira vez. Não gera de novo se o cliente já tiver parcelas (evita duplicar
 // vencimentos ao simplesmente editar o cadastro outras vezes).
+// A 1ª parcela vence na "Data do 1º pagamento" escolhida no cadastro (client.firstPaymentDate).
+// Se não for informada, cai no comportamento antigo: 1 mês a partir de hoje. As demais
+// parcelas seguem automaticamente no mesmo dia dos meses seguintes (ex: 01/08, 01/09, 01/10...).
 export function generateInstallmentsForClient(client) {
     const total = Number(client.contractValue) || 0;
     const count = Math.max(0, Math.floor(Number(client.installmentsCount) || 0));
@@ -26,7 +29,7 @@ export function generateInstallmentsForClient(client) {
 
     const baseAmount = Math.floor((total / count) * 100) / 100;
     const roundingAdjustment = Math.round((total - baseAmount * count) * 100) / 100;
-    const startDate = todayISO();
+    const firstPaymentDate = client.firstPaymentDate || addMonthsISO(todayISO(), 1);
 
     const newInstallments = [];
     for (let index = 0; index < count; index += 1) {
@@ -37,7 +40,7 @@ export function generateInstallmentsForClient(client) {
             number: index + 1,
             total: count,
             amount: isLast ? Math.round((baseAmount + roundingAdjustment) * 100) / 100 : baseAmount,
-            dueDate: addMonthsISO(startDate, index + 1),
+            dueDate: addMonthsISO(firstPaymentDate, index),
             paid: false,
             paidAt: null,
             createdAt: new Date().toISOString()
@@ -343,17 +346,69 @@ export async function handleContractsTableClick(event) {
 
 
 async function toggleInstallmentPaid(installmentId) {
-    appState.installments = appState.installments.map((installment) => (
-        installment.id === installmentId
-            ? {
-                ...installment,
-                paid: !installment.paid,
-                paidAt: installment.paid ? null : new Date().toISOString()
-            }
-            : installment
-    ));
-    await saveStorage(STORAGE_KEYS.installments, appState.installments);
+    const installment = appState.installments.find((item) => item.id === installmentId);
+    if (!installment) return;
+
+    await setInstallmentPaid(installmentId, !installment.paid);
     renderAll();
+}
+
+
+// Marca a parcela como paga/recebida e mantém um lançamento espelhado no Financeiro
+// (Entrada · Honorário), para que o valor só entre nos totais de honorários/saldo depois
+// de confirmado o recebimento. Ao desfazer, o lançamento espelhado é removido — evitando
+// duplicar o valor se a parcela for confirmada de novo depois.
+export async function setInstallmentPaid(installmentId, paid) {
+    const installment = appState.installments.find((item) => item.id === installmentId);
+    if (!installment) return;
+
+    if (paid) {
+        const client = findClient(installment.clientId);
+        const financeEntryId = installment.financeEntryId || createId();
+        const financeEntry = {
+            id: financeEntryId,
+            type: "Entrada",
+            category: "Honorário",
+            contractType: "",
+            amount: Number(installment.amount) || 0,
+            date: installment.dueDate,
+            clientId: installment.clientId,
+            description: installment.total
+                ? `Parcela ${installment.number}/${installment.total} confirmada${client ? " — " + client.name : ""}`
+                : `Parcela avulsa confirmada${client ? " — " + client.name : ""}`,
+            createdAt: new Date().toISOString()
+        };
+
+        appState.finance = [financeEntry, ...appState.finance.filter((entry) => entry.id !== financeEntryId)];
+        appState.installments = appState.installments.map((item) => (
+            item.id === installmentId
+                ? { ...item, paid: true, paidAt: new Date().toISOString(), financeEntryId }
+                : item
+        ));
+    } else {
+        if (installment.financeEntryId) {
+            appState.finance = appState.finance.filter((entry) => entry.id !== installment.financeEntryId);
+        }
+        appState.installments = appState.installments.map((item) => (
+            item.id === installmentId
+                ? { ...item, paid: false, paidAt: null, financeEntryId: null }
+                : item
+        ));
+    }
+
+    await saveStorage(STORAGE_KEYS.installments, appState.installments);
+    await saveStorage(STORAGE_KEYS.finance, appState.finance);
+}
+
+
+// Parcelas vencidas ou vencendo hoje que ainda não tiveram o recebimento confirmado —
+// usadas pelo sino de notificações do Dashboard para pedir a confirmação antes de lançar
+// o valor como honorário recebido.
+export function getInstallmentsAwaitingConfirmation() {
+    const today = todayISO();
+    return appState.installments
+        .filter((installment) => !installment.paid && installment.dueDate && installment.dueDate <= today)
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
 
 

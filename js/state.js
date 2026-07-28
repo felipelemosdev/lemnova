@@ -25,6 +25,7 @@ export const appState = {
     clockTimer: null,
     tasks: [],
     activeReplyTaskId: null,
+    activeReplyRole: null,
     activeNotifTaskId: null,
     activeContractClientId: null,
 };

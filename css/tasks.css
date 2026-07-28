@@ -1,0 +1,123 @@
+/* css/tasks.css
+   Página Tarefas: pill de prioridade, moldura do modal de conversa
+   (task-reply-modal) e o formato antigo de resposta em cartão
+   (.reply-entry-*, mantido por segurança — o layout atual usa os
+   balões de chat definidos em chat-messages.css).
+*/
+
+.task-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.task-pill.low {
+  color: var(--color-success);
+  background: rgba(2, 122, 72, 0.1);
+}
+
+.task-pill.medium {
+  color: #b54708;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.task-pill.high {
+  color: var(--color-danger);
+  background: rgba(180, 35, 24, 0.1);
+}
+
+/* ===========================
+   TASK REPLY MODAL
+   =========================== */
+.task-reply-modal {
+    width: min(100%, 640px);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.task-reply-body {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 4px 0;
+    margin: 14px 0;
+}
+
+.task-reply-history {
+    border-top: 1px solid var(--color-border);
+    padding-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.reply-entry {
+    padding: 12px 14px;
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-gold);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+}
+
+.reply-entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.reply-entry-author {
+    font-weight: 800;
+    font-size: 0.88rem;
+    color: var(--color-navy);
+}
+
+.reply-entry-date {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+}
+
+.reply-entry-text {
+    margin: 0;
+    color: var(--color-text);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.reply-entry-pdf {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 4px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-white);
+    color: var(--color-navy);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.reply-entry-pdf:hover {
+    background: var(--color-surface);
+}
+
+/* Botão responder na lista de tarefas */
+.action-button.reply {
+    border-color: rgba(16, 32, 58, 0.2);
+    color: var(--color-navy);
+    background: rgba(212, 175, 55, 0.08);
+}

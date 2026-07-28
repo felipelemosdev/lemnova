@@ -17,6 +17,9 @@ import {
     toggleNotifPanel,
     closeNotifPanel,
     handleOutsideNotifClick,
+    toggleMessagesPanel,
+    closeMessagesPanel,
+    handleOutsideMessagesClick,
     closeConfirmModal
 } from "./dom.js";
 import { createId, todayISO } from "./utils.js";
@@ -69,7 +72,9 @@ import {
     saveTaskReply,
     printTaskReply,
     completeTaskFromReply,
-    printTasksReport
+    printTasksReport,
+    renderMessagesCenter,
+    handleMessagesListClick
 } from "./tasks.js";
 
 import {
@@ -81,6 +86,7 @@ import {
     handleNotifListClick,
     closeNotificationDetail,
     completeNotificationTask,
+    completeNotificationInstallment,
     handleNotifDetailOverlayClick
 } from "./dashboard.js";
 
@@ -134,11 +140,27 @@ function bindEvents() {
     if (elements.notifList) {
         elements.notifList.addEventListener("click", handleNotifListClick);
     }
+    if (elements.messagesButton) {
+        elements.messagesButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+            toggleMessagesPanel();
+        });
+        document.addEventListener("click", handleOutsideMessagesClick);
+    }
+    if (elements.messagesList) {
+        elements.messagesList.addEventListener("click", (event) => {
+            handleMessagesListClick(event);
+            closeMessagesPanel();
+        });
+    }
     if (elements.notifDetailCloseButton) {
         elements.notifDetailCloseButton.addEventListener("click", closeNotificationDetail);
     }
     if (elements.notifDetailCompleteButton) {
         elements.notifDetailCompleteButton.addEventListener("click", completeNotificationTask);
+    }
+    if (elements.notifDetailConfirmReceiptButton) {
+        elements.notifDetailConfirmReceiptButton.addEventListener("click", completeNotificationInstallment);
     }
     if (elements.notifDetailOverlay) {
         elements.notifDetailOverlay.addEventListener("click", handleNotifDetailOverlayClick);
@@ -246,8 +268,16 @@ function bindEvents() {
     elements.taskList.addEventListener("click", handleTaskListClick);
     elements.replyPdf.addEventListener("change", () => {
         const file = elements.replyPdf.files[0];
-        elements.replyPdfName.textContent = file ? `📎 ${file.name}` : "";
+        elements.replyPdfName.textContent = file ? file.name : "Anexar PDF";
     });
+    if (elements.replyText) {
+        elements.replyText.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                saveTaskReply();
+            }
+        });
+    }
 
     elements.navLinks.forEach((link) => {
         link.addEventListener("click", () => {
@@ -384,6 +414,7 @@ export function renderAll() {
     renderEvents();
     renderDashboardEvents();
     renderTasks();
+    renderMessagesCenter();
 }
 
 
@@ -419,6 +450,7 @@ function handleGlobalKeydown(event) {
     closeConfirmModal();
     closeDocumentPreview();
     closeNotifPanel();
+    closeMessagesPanel();
     closeNotificationDetail();
     closeContractModal();
     closeInstallmentModal();

@@ -1,0 +1,175 @@
+/* css/login.css
+   Tela de login: as 4 camadas (fundo da cena, figura/estátua, logo, card de
+   login) e o rodapé com relógio/crédito.
+*/
+
+/* ============================================================
+   TELA DE LOGIN — ESTRUTURA EM CAMADAS (fácil de editar depois)
+   1) .login-view       -> container (só posiciona as camadas)
+   2) .login-scene-bg   -> CAMADA DE FUNDO (cenário/colunas)
+   3) .login-figure     -> CAMADA DA MULHER/ESTÁTUA (inferior esq.)
+   4) .login-brand      -> CAMADA DA LOGO (superior esq.)
+   5) .login-panel      -> CARD DE LOGIN (central)
+   ============================================================ */
+.login-view {
+    flex: 1;
+    min-height: 0; /* essencial: permite que o flex item encolha em vez de estourar a tela */
+    margin: 0;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    background: #05070d; /* cor de fallback enquanto as imagens carregam */
+
+}
+
+/* ====================== 1) FUNDO DA CENA (colunas/ambiente) ======================
+   Arquivo: assets/images/login-background.jpeg (cena completa, colunas + estátua da direita) */
+.login-scene-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: url("assets/images/fundotela.png") center bottom / cover no-repeat;
+    
+}
+
+/* ====================== 2) MULHER / ESTÁTUA (inferior esquerdo) ======================
+   Arquivo: assets/images/justitia.jpeg (fundo preto já removido, virou transparente).
+   Troque a imagem, o tamanho (width/height) e a posição (left/bottom) aqui,
+   sem afetar o fundo nem a logo. */
+.login-figure {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+
+    width: 300px;
+    height: 650px;
+
+    z-index: 1;
+
+    background-image: url("assets/images/justitia.png");
+    background-repeat: no-repeat;
+    background-position: left bottom;
+    background-size: contain;
+
+    pointer-events: none;
+
+    animation: justiceGlow 4s ease-in-out infinite;
+}
+
+@keyframes justiceGlow {
+    0%, 100% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(1.15);
+    }
+}
+
+/* ====================== 3) LOGO (superior esquerdo) ======================
+   Arquivo: assets/images/login-logo.png (fundo preto já removido) */
+.login-brand {
+    position: absolute;
+    top: 32px;
+    left: 40px;
+    z-index: 3;
+}
+
+.brand-logo-img {
+    display: block;
+    height: 190px;
+    width: auto;
+    
+}
+
+/* ====================== 4) CARD DE LOGIN (central) ====================== */
+.login-panel {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 340px;
+    background: rgba(233, 186, 125, 0.349);
+    border-radius: 28px;
+    padding: 44px 34px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+    text-align: center;
+    backdrop-filter: blur(2px);
+}
+
+.login-panel .field {
+    margin-bottom: 18px;
+}
+
+.login-panel .field input {
+    width: 100%;
+    padding: 15px 20px;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fdf6ec;
+    font-size: 1rem;
+}
+
+.login-panel .field input::placeholder {
+    color: rgba(253, 246, 236, 0.85);
+}
+
+.login-panel .field input:focus {
+    border-color: #4fd3e0;
+    box-shadow: 0 0 0 4px rgba(79, 211, 224, 0.25);
+    outline: none;
+}
+
+.forgot-link {
+    display: block;
+    margin: 4px 0 22px;
+    color: rgba(253, 246, 236, 0.85);
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+
+.forgot-link:hover {
+    text-decoration: underline;
+}
+
+.btn-login {
+    display: inline-block;
+    width: auto;
+    min-width: 150px;
+    padding: 13px 40px;
+    background: #26c6da;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(38, 198, 218, 0.4);
+}
+
+.btn-login:hover {
+    background: #1fb3c6;
+}
+
+/* Rodapé */
+.login-meta {
+    position: absolute;
+    z-index: 3;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    text-align: center;
+}
+
+.login-meta .clock-stack {
+    display: inline-flex;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.8rem;
+}

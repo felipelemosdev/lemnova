@@ -1,0 +1,193 @@
+/* css/clients.css
+   Página Clientes: listagem/perfil expandido do cliente, avatar/foto,
+   grade de detalhes, bloco de documentos do cliente e toolbar de busca.
+*/
+
+.client-page {
+    display: grid;
+    gap: 18px;
+}
+
+.client-toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.registered-clients-panel {
+    display: grid;
+    gap: 14px;
+}
+
+.photo-field {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    padding: 14px;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius);
+    background: #fbfcff;
+}
+
+.photo-preview {
+    display: grid;
+    place-items: center;
+    width: 86px;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border: 1px solid rgba(16, 32, 58, 0.18);
+    border-radius: 6px;
+    background: var(--color-white);
+    color: var(--color-gold-dark);
+    font-weight: 900;
+}
+
+.photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.client-profile-list {
+    display: grid;
+    gap: 16px;
+}
+
+.client-profile-card {
+    display: grid;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: #fbfcff;
+}
+
+.client-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+}
+
+.client-profile-title {
+    min-width: 0;
+    flex: 1;
+}
+
+.client-profile-title strong {
+    display: block;
+    color: var(--color-navy);
+    font-size: 1.08rem;
+}
+
+.client-profile-title span {
+    color: var(--color-muted);
+    font-size: 0.88rem;
+}
+
+.client-avatar {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    aspect-ratio: 3 / 4;
+    flex: 0 0 auto;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
+    background: rgba(212, 175, 55, 0.14);
+    color: var(--color-navy);
+    font-size: 0.78rem;
+    font-weight: 900;
+    object-fit: cover;
+}
+
+.client-avatar.large {
+    width: 66px;
+}
+
+.client-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.client-expanded {
+    display: grid;
+    gap: 16px;
+}
+
+.detail-item {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-white);
+}
+
+.detail-item.wide {
+    grid-column: 1 / -1;
+}
+
+.detail-item span {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--color-muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.detail-item strong {
+    display: block;
+    color: var(--color-navy);
+    font-size: 0.92rem;
+    overflow-wrap: anywhere;
+}
+
+.client-documents-block {
+    display: grid;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+}
+
+.client-documents-block > div:first-child strong {
+    display: block;
+    color: var(--color-navy);
+}
+
+.client-documents-block > div:first-child span {
+    color: var(--color-muted);
+    font-size: 0.86rem;
+}
+
+.client-document-list {
+    display: grid;
+    gap: 8px;
+}
+
+.client-document-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-white);
+}
+
+.client-document-item strong,
+.client-document-item span {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.client-info {
+    min-width: 0;
+}
+
+.client-toolbar {
+    flex-wrap: wrap;
+}

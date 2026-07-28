@@ -1,0 +1,80 @@
+/* css/documents.css
+   Página Processos: lista/ações/badge de documentos e o bloco de busca
+   de processo por número CNJ (cnj.js).
+*/
+
+.cnj-lookup {
+    padding: 14px;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius);
+    background: rgba(212, 175, 55, 0.06);
+}
+
+.cnj-lookup-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.cnj-lookup-row select {
+    flex: 1 1 240px;
+}
+
+.cnj-lookup-row .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.cnj-status {
+    margin: 10px 0 0;
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--color-muted);
+    min-height: 1.2em;
+}
+
+.cnj-status.is-loading {
+    color: var(--color-navy);
+}
+
+.cnj-status.is-success {
+    color: var(--color-success);
+}
+
+.cnj-status.is-error {
+    color: var(--color-danger);
+}
+
+.document-list {
+    display: grid;
+    gap: 12px;
+}
+
+.document-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.document-meta {
+    min-width: 0;
+}
+
+.document-meta strong,
+.document-meta span {
+    overflow-wrap: anywhere;
+}
+
+.document-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: var(--radius);
+    color: var(--color-navy);
+    background: rgba(212, 175, 55, 0.16);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}

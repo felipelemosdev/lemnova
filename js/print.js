@@ -1,6 +1,19 @@
-
-
 import { escapeHTML } from "./utils.js";
+
+// Configuração da página impressa (tamanho do papel, orientação e margens do @page).
+// As margens laterais (right/left) precisam bater com o "-26px" usado em .print-header
+// e .letterhead-rule, que sangram até a borda do papel — se mudar o padding lateral
+// desses blocos no CSS abaixo, ajuste esse valor de margem junto.
+const PRINT_CONFIG = {
+    paper: "A4",
+    orientation: "portrait",
+    margins: {
+        top: "20px",
+        right: "26px",
+        bottom: "34px",
+        left: "26px"
+    }
+};
 
 export function buildPrintDocument(title, subtitle, bodyHtml) {
     const generatedAt = new Date().toLocaleString("pt-BR");

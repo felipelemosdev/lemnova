@@ -1,0 +1,52 @@
+/* css/print.css
+   Regras exclusivas de impressão (@media print): esconde navegação/
+   sidebar/topbar e mostra só a seção marcada como .print-target.
+*/
+
+/* ===========================
+   PRINT STYLES
+   =========================== */
+@media print {
+    .sidebar,
+    .topbar,
+    .dash-topbar,
+    .btn-print,
+    .login-view,
+    .task-reply-modal .modal-actions,
+    nav,
+    footer {
+        display: flex;
+    justify-content: flex-end;
+    padding: 5px;
+    }
+
+    .system-view {
+        display: block !important;
+    }
+
+    .main-area {
+        padding: 0 !important;
+    }
+
+    .content-section {
+        display: none !important;
+    }
+
+    .content-section.print-target {
+        display: block !important;
+    }
+
+    .dashboard-3col {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    body {
+        background: white !important;
+    }
+
+    .workspace-panel, .summary-card {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+    }
+}

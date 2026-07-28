@@ -103,6 +103,7 @@ export async function handleClientSubmit(event) {
         status: elements.clientStatus.value,
         contractValue: elements.clientContractValue ? Number(elements.clientContractValue.value) || 0 : (existingClient?.contractValue || 0),
         installmentsCount: elements.clientInstallmentsCount ? Number(elements.clientInstallmentsCount.value) || 0 : (existingClient?.installmentsCount || 0),
+        firstPaymentDate: elements.clientFirstPaymentDate ? elements.clientFirstPaymentDate.value : (existingClient?.firstPaymentDate || ""),
         rpvValue: elements.clientRpvValue ? Number(elements.clientRpvValue.value) || 0 : (existingClient?.rpvValue || 0),
         rpvDate: elements.clientRpvDate ? elements.clientRpvDate.value : (existingClient?.rpvDate || ""),
         rpvReceived: existingClient ? existingClient.rpvReceived || false : false,
@@ -226,6 +227,9 @@ export function fillClientForm(clientId) {
     if (elements.clientInstallmentsCount) {
         elements.clientInstallmentsCount.value = client.installmentsCount || "";
     }
+    if (elements.clientFirstPaymentDate) {
+        elements.clientFirstPaymentDate.value = client.firstPaymentDate || "";
+    }
     if (elements.clientRpvValue) {
         elements.clientRpvValue.value = client.rpvValue || "";
     }
@@ -299,6 +303,9 @@ export function resetClientForm() {
     elements.clientStatus.value = "Ativo";
     if (elements.clientRpvDate) {
         elements.clientRpvDate.value = "";
+    }
+    if (elements.clientFirstPaymentDate) {
+        elements.clientFirstPaymentDate.value = "";
     }
     updatePhotoPreview("");
     setCpfMessage("", "");

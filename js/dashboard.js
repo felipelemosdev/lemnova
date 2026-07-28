@@ -6,7 +6,12 @@ import { appState, findClient } from "./state.js";
 import { elements } from "./dom.js";
 import { todayISO, formatDate, formatCurrency, escapeHTML } from "./utils.js";
 import { calculateFinanceTotals, calculateFutureFinanceTotals } from "./finance.js";
-import { renderContractIndicators, calculatePendingInstallmentsSummary } from "./installments.js";
+import {
+    renderContractIndicators,
+    calculatePendingInstallmentsSummary,
+    getInstallmentsAwaitingConfirmation,
+    setInstallmentPaid
+} from "./installments.js";
 import { getSortedEvents } from "./agenda.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { renderAll } from "./main.js";
@@ -98,6 +103,7 @@ export function renderNotifications() {
     const today = todayISO();
     const overdueTasks = appState.tasks.filter((t) => !t.done && t.dueDate && t.dueDate < today);
     const todayEvents = appState.events.filter((eventItem) => eventItem.date === today && !eventItem.done);
+    const pendingInstallments = getInstallmentsAwaitingConfirmation();
 
     const items = [
         ...overdueTasks.map((task) => ({
@@ -113,7 +119,18 @@ export function renderNotifications() {
             refId: eventItem.id,
             title: eventItem.type,
             detail: `Hoje às ${eventItem.time}`
-        }))
+        })),
+        ...pendingInstallments.map((installment) => {
+            const client = findClient(installment.clientId);
+            const isOverdue = installment.dueDate < today;
+            return {
+                kind: "installment",
+                refKind: "installment",
+                refId: installment.id,
+                title: `Confirmar recebimento${client ? ": " + client.name : ""}`,
+                detail: `${formatCurrency(installment.amount)} · vencimento ${formatDate(installment.dueDate)}${isOverdue ? " (atrasada)" : " (hoje)"}`
+            };
+        })
     ];
 
     const count = items.length;
@@ -160,10 +177,36 @@ export function openNotificationDetail(kind, id) {
         ].filter(Boolean);
 
         appState.activeNotifTaskId = task.id;
+        appState.activeNotifInstallmentId = null;
         elements.notifDetailEyebrow.textContent = "Tarefa atrasada";
         elements.notifDetailTitle.textContent = task.title;
         elements.notifDetailText.textContent = [metaParts.join(" · "), task.description].filter(Boolean).join("\n\n");
         elements.notifDetailCompleteButton.classList.toggle("hidden", task.done);
+        if (elements.notifDetailConfirmReceiptButton) {
+            elements.notifDetailConfirmReceiptButton.classList.add("hidden");
+        }
+    } else if (kind === "installment") {
+        const installment = appState.installments.find((item) => item.id === id);
+        if (!installment) return;
+
+        const client = findClient(installment.clientId);
+        const isOverdue = installment.dueDate < todayISO();
+        const metaParts = [
+            client ? client.name : null,
+            `Valor: ${formatCurrency(installment.amount)}`,
+            `Vencimento: ${formatDate(installment.dueDate)}${isOverdue ? " (atrasada)" : " (hoje)"}`,
+            installment.total ? `Parcela ${installment.number}/${installment.total}` : "Parcela avulsa"
+        ].filter(Boolean);
+
+        appState.activeNotifTaskId = null;
+        appState.activeNotifInstallmentId = installment.id;
+        elements.notifDetailEyebrow.textContent = "Confirmação de recebimento";
+        elements.notifDetailTitle.textContent = client ? client.name : "Parcela";
+        elements.notifDetailText.textContent = metaParts.join("\n");
+        elements.notifDetailCompleteButton.classList.add("hidden");
+        if (elements.notifDetailConfirmReceiptButton) {
+            elements.notifDetailConfirmReceiptButton.classList.remove("hidden");
+        }
     } else {
         const eventItem = appState.events.find((item) => item.id === id);
         if (!eventItem) return;
@@ -176,10 +219,14 @@ export function openNotificationDetail(kind, id) {
         ].filter(Boolean);
 
         appState.activeNotifTaskId = null;
+        appState.activeNotifInstallmentId = null;
         elements.notifDetailEyebrow.textContent = "Evento de hoje";
         elements.notifDetailTitle.textContent = eventItem.type;
         elements.notifDetailText.textContent = [metaParts.join(" · "), eventItem.notes].filter(Boolean).join("\n\n");
         elements.notifDetailCompleteButton.classList.add("hidden");
+        if (elements.notifDetailConfirmReceiptButton) {
+            elements.notifDetailConfirmReceiptButton.classList.add("hidden");
+        }
     }
 
     elements.notifPanel.classList.add("hidden");
@@ -189,7 +236,11 @@ export function openNotificationDetail(kind, id) {
 
 export function closeNotificationDetail() {
     appState.activeNotifTaskId = null;
+    appState.activeNotifInstallmentId = null;
     elements.notifDetailOverlay.classList.add("hidden");
+    if (elements.notifDetailConfirmReceiptButton) {
+        elements.notifDetailConfirmReceiptButton.classList.add("hidden");
+    }
 }
 
 
@@ -204,6 +255,22 @@ export async function completeNotificationTask() {
         task.id === taskId ? { ...task, done: true } : task
     ));
     await saveStorage(STORAGE_KEYS.tasks, appState.tasks);
+    closeNotificationDetail();
+    renderAll();
+}
+
+
+// Confirma o recebimento da parcela em destaque no modal de notificação: marca a parcela
+// como paga e lança o valor como Honorário/Entrada no Financeiro (via setInstallmentPaid),
+// só então ele passa a contar nos totais de honorários/saldo do Dashboard.
+export async function completeNotificationInstallment() {
+    const installmentId = appState.activeNotifInstallmentId;
+    if (!installmentId) {
+        closeNotificationDetail();
+        return;
+    }
+
+    await setInstallmentPaid(installmentId, true);
     closeNotificationDetail();
     renderAll();
 }
@@ -319,7 +386,6 @@ export function renderDashboardTasks() {
     renderColumn(upcoming, elements.dashTaskUpcomingList, elements.dashTaskUpcomingCount);
     renderColumn(done, elements.dashTaskDoneList, elements.dashTaskDoneCount);
 }
-
 
 export function renderDashboardEvents() {
     if (!elements.dashEventList) return;
