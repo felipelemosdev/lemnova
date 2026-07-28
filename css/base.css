@@ -29,14 +29,14 @@
     --shadow-soft: 0 16px 40px rgba(0,0,0,0.18);
 
     --radius: 10px;
-    --sidebar-width: 280px;
+    --sidebar-width: 200px;
 }
 
 button,
 input,
 select,
 textarea {
-    font: inherit;
+    font: Aptos;
 }
 
 .hidden {
