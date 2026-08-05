@@ -26,6 +26,43 @@ export function getContractTypeLabel(contractTypeId) {
 }
 
 
+// ============================================================================
+// Listas do módulo Financeiro (baseadas no modelo "Gestão Financeira -
+// Escritório Previdenciário"): formas de pagamento, categorias de entrada
+// (recebimentos) e de saída (despesas), e situações possíveis de cada uma.
+// Usadas pelo formulário de lançamento em finance.js e pelas abas de Contas
+// a Receber / Contas a Pagar / Fluxo de Caixa.
+// ============================================================================
+
+export const PAYMENT_METHODS = [
+    "PIX", "TED", "DOC", "Dinheiro", "Cartão", "Boleto", "Cheque", "Outros"
+];
+
+// "Tipo de Recebimento" da planilha, usado como Categoria quando o lançamento é uma Entrada.
+export const FINANCE_INCOME_CATEGORIES = [
+    "Honorários iniciais", "Entrada", "Parcela", "Êxito", "Sucumbência", "Outros"
+];
+
+// "Categoria" da aba Despesas + CategoriaDespesa da aba Listas, usada quando o lançamento é uma Saída.
+export const FINANCE_EXPENSE_CATEGORIES = [
+    "Aluguel", "Internet", "Água", "Energia", "Telefone", "Custas judiciais/processuais",
+    "Honorários terceiros", "Contabilidade", "Impostos", "Marketing", "Softwares", "Cursos",
+    "Viagens", "Alimentação", "Material de escritório", "Equipamentos", "Correios",
+    "Cartório", "Combustível", "Outros"
+];
+
+export const FINANCE_INCOME_STATUSES = ["Pendente", "Recebido", "Cancelado"];
+export const FINANCE_EXPENSE_STATUSES = ["Pendente", "Pago", "Cancelado"];
+
+export function getFinanceCategoryOptions(type) {
+    return type === "Saída" ? FINANCE_EXPENSE_CATEGORIES : FINANCE_INCOME_CATEGORIES;
+}
+
+export function getFinanceStatusOptions(type) {
+    return type === "Saída" ? FINANCE_EXPENSE_STATUSES : FINANCE_INCOME_STATUSES;
+}
+
+
 export function onlyDigits(value) {
     return String(value || "").replace(/\D/g, "");
 }

@@ -53,7 +53,15 @@ import {
     handleFinanceSubmit,
     handleFinanceTableClick,
     renderFinance,
-    printFinanceReport
+    printFinanceReport,
+    updateFinanceCategoryOptions,
+    updateFinanceStatusOptions,
+    showFinanceTab,
+    handleReceivablesTableClick,
+    handlePayablesTableClick,
+    printReceivablesReport,
+    printPayablesReport,
+    printCashflowReport
 } from "./finance.js";
 
 import {
@@ -233,6 +241,44 @@ function bindEvents() {
     if (elements.printFinanceReportButton) {
         elements.printFinanceReportButton.addEventListener("click", printFinanceReport);
     }
+    if (elements.financeType) {
+        elements.financeType.addEventListener("change", () => {
+            updateFinanceCategoryOptions();
+            updateFinanceStatusOptions();
+        });
+    }
+    if (elements.financeDate) {
+        elements.financeDate.addEventListener("change", updateFinanceStatusOptions);
+    }
+    if (elements.financeTabMovements) {
+        elements.financeTabMovements.addEventListener("click", () => showFinanceTab("movements"));
+    }
+    if (elements.financeTabReceivables) {
+        elements.financeTabReceivables.addEventListener("click", () => showFinanceTab("receivables"));
+    }
+    if (elements.financeTabPayables) {
+        elements.financeTabPayables.addEventListener("click", () => showFinanceTab("payables"));
+    }
+    if (elements.financeTabCashflow) {
+        elements.financeTabCashflow.addEventListener("click", () => showFinanceTab("cashflow"));
+    }
+    if (elements.financeReceivablesTableBody) {
+        elements.financeReceivablesTableBody.addEventListener("click", handleReceivablesTableClick);
+    }
+    if (elements.financePayablesTableBody) {
+        elements.financePayablesTableBody.addEventListener("click", handlePayablesTableClick);
+    }
+    if (elements.printReceivablesReportButton) {
+        elements.printReceivablesReportButton.addEventListener("click", printReceivablesReport);
+    }
+    if (elements.printPayablesReportButton) {
+        elements.printPayablesReportButton.addEventListener("click", printPayablesReport);
+    }
+    if (elements.printCashflowReportButton) {
+        elements.printCashflowReportButton.addEventListener("click", printCashflowReport);
+    }
+    updateFinanceCategoryOptions();
+    updateFinanceStatusOptions();
     if (elements.contractsFilter) {
         elements.contractsFilter.addEventListener("change", renderContractsSection);
     }
@@ -366,7 +412,9 @@ async function seedInitialData() {
         {
             id: createId(),
             type: "Entrada",
-            category: "Honorário",
+            category: "Honorários iniciais",
+            method: "PIX",
+            status: "Recebido",
             amount: 4500,
             date: todayISO(),
             clientId: appState.clients[0].id,
@@ -375,7 +423,9 @@ async function seedInitialData() {
         {
             id: createId(),
             type: "Saída",
-            category: "Custo de escritório",
+            category: "Custas judiciais/processuais",
+            method: "Boleto",
+            status: "Pago",
             amount: 680,
             date: todayISO(),
             clientId: "",

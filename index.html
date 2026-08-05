@@ -696,7 +696,14 @@
                         </article>
                     </div>
 
-                    <div class="workspace-grid">
+                    <div class="client-toolbar">
+                        <button id="financeTabMovements" class="btn btn-primary" type="button">Movimentações</button>
+                        <button id="financeTabReceivables" class="btn btn-ghost" type="button">Contas a Receber</button>
+                        <button id="financeTabPayables" class="btn btn-ghost" type="button">Contas a Pagar</button>
+                        <button id="financeTabCashflow" class="btn btn-ghost" type="button">Fluxo de Caixa</button>
+                    </div>
+
+                    <div id="financeMovementsPanel" class="workspace-grid">
                         <form id="financeForm" class="workspace-panel form-grid">
                             <div class="section-heading full-width">
                                 <div>
@@ -715,13 +722,31 @@
 
                             <label class="field">
                                 <span>Categoria</span>
-                                <select id="financeCategory" required>
-                                    <option value="Honorário">Honorário</option>
-                                    <option value="Custo de escritório">Custo de escritório</option>
-                                    <option value="Custa processual">Custa processual</option>
-                                    <option value="Recebimento">Recebimento</option>
-                                    <option value="Outro">Outro</option>
+                                <select id="financeCategory" required></select>
+                            </label>
+
+                            <label class="field">
+                                <span>Forma de pagamento</span>
+                                <select id="financeMethod" required>
+                                    <option value="PIX">PIX</option>
+                                    <option value="TED">TED</option>
+                                    <option value="DOC">DOC</option>
+                                    <option value="Dinheiro">Dinheiro</option>
+                                    <option value="Cartão">Cartão</option>
+                                    <option value="Boleto">Boleto</option>
+                                    <option value="Cheque">Cheque</option>
+                                    <option value="Outros">Outros</option>
                                 </select>
+                            </label>
+
+                            <label class="field">
+                                <span>Situação</span>
+                                <select id="financeStatus" required></select>
+                            </label>
+
+                            <label class="field">
+                                <span>Responsável</span>
+                                <input id="financeResponsible" type="text" placeholder="Ex.: Dr. Ricardo Almeida">
                             </label>
 
                             <label class="field">
@@ -795,11 +820,12 @@
                                         <tr>
                                             <th>Tipo</th>
                                             <th>Categoria</th>
+                                            <th>Forma</th>
                                             <th>Tipo de contrato</th>
                                             <th>Descrição</th>
                                             <th>Valor</th>
                                             <th>Data</th>
-                                            <th>Status</th>
+                                            <th>Situação</th>
                                             <th>Ações</th>
                                         </tr>
                                     </thead>
@@ -809,6 +835,92 @@
                             <p id="financeEmptyState" class="empty-state">Nenhuma movimentação cadastrada.</p>
                         </section>
                     </div>
+
+                    <section id="financeReceivablesPanel" class="workspace-panel hidden">
+                        <div class="section-heading">
+                            <div>
+                                <p class="eyebrow">Contas a Receber</p>
+                                <h3>Recebimentos pendentes</h3>
+                            </div>
+                            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+                                <span id="receivablesSummary" class="status-pill">R$ 0,00 em aberto</span>
+                                <button id="printReceivablesReportButton" class="btn btn-ghost btn-print" type="button">🖨 Imprimir</button>
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Cliente</th>
+                                        <th>Categoria</th>
+                                        <th>Descrição</th>
+                                        <th>Valor</th>
+                                        <th>Vencimento</th>
+                                        <th>Dias em atraso</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="financeReceivablesTableBody"></tbody>
+                            </table>
+                        </div>
+                        <p id="financeReceivablesEmptyState" class="empty-state">Nenhuma conta a receber em aberto.</p>
+                    </section>
+
+                    <section id="financePayablesPanel" class="workspace-panel hidden">
+                        <div class="section-heading">
+                            <div>
+                                <p class="eyebrow">Contas a Pagar</p>
+                                <h3>Pagamentos pendentes</h3>
+                            </div>
+                            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+                                <span id="payablesSummary" class="status-pill">R$ 0,00 em aberto</span>
+                                <button id="printPayablesReportButton" class="btn btn-ghost btn-print" type="button">🖨 Imprimir</button>
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Fornecedor/Descrição</th>
+                                        <th>Categoria</th>
+                                        <th>Valor</th>
+                                        <th>Vencimento</th>
+                                        <th>Dias em atraso</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="financePayablesTableBody"></tbody>
+                            </table>
+                        </div>
+                        <p id="financePayablesEmptyState" class="empty-state">Nenhuma conta a pagar em aberto.</p>
+                    </section>
+
+                    <section id="financeCashflowPanel" class="workspace-panel hidden">
+                        <div class="section-heading">
+                            <div>
+                                <p class="eyebrow">Fluxo de Caixa</p>
+                                <h3>Resumo mensal</h3>
+                            </div>
+                            <button id="printCashflowReportButton" class="btn btn-ghost btn-print" type="button">🖨 Imprimir</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Mês</th>
+                                        <th>Entradas</th>
+                                        <th>Saídas</th>
+                                        <th>Saldo do mês</th>
+                                        <th>Saldo acumulado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="financeCashflowTableBody"></tbody>
+                            </table>
+                        </div>
+                        <p id="financeCashflowEmptyState" class="empty-state">Nenhuma movimentação cadastrada.</p>
+                    </section>
                 </section>
 
                 <!-- Seção Contratos: vencimentos das parcelas geradas automaticamente e RPVs -->

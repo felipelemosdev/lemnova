@@ -368,7 +368,8 @@ export async function setInstallmentPaid(installmentId, paid) {
         const financeEntry = {
             id: financeEntryId,
             type: "Entrada",
-            category: "Honorário",
+            category: "Parcela",
+            status: "Recebido",
             contractType: "",
             amount: Number(installment.amount) || 0,
             date: installment.dueDate,
