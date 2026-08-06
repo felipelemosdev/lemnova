@@ -63,6 +63,7 @@ import {
     printPayablesReport,
     printCashflowReport
 } from "./finance.js";
+import { backfillInstallmentFinanceEntries } from "./installments.js";
 
 import {
     handleEventSubmit,
@@ -121,6 +122,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await initializeDatabase();
     await migrateLegacyStorage();
     await loadState();
+    await backfillInstallmentFinanceEntries();
     await seedInitialData();
     await hydrateSession();
 

@@ -7,12 +7,13 @@
 import { appState, findClient } from "./state.js";
 import { elements, closeConfirmModal } from "./dom.js";
 import {
-    createId, todayISO, formatCurrency, formatDate, escapeHTML, diffDaysISO,
+    createId, todayISO, formatCurrency, formatDate, escapeHTML, diffDaysISO, addMonthsISO,
     getFinanceCategoryOptions, getFinanceStatusOptions
 } from "./utils.js";
 import { STORAGE_KEYS, saveStorage } from "./storage.js";
 import { buildPrintDocument } from "./print.js";
 import { renderAll } from "./main.js";
+import { syncInstallmentFromFinanceEntry } from "./installments.js";
 
 // Repopula a Categoria (Tipo de Recebimento / Categoria de Despesa) de acordo com o Tipo
 // de fluxo selecionado (Entrada x Saída). Chamada na inicialização e sempre que o Tipo muda.
@@ -49,20 +50,48 @@ export function updateFinanceStatusOptions() {
 export async function handleFinanceSubmit(event) {
     event.preventDefault();
 
-    appState.finance.unshift({
-        id: createId(),
-        type: elements.financeType.value,
+    const installmentsCount = elements.financeInstallmentsCount
+        ? Math.min(60, Math.max(1, Math.trunc(Number(elements.financeInstallmentsCount.value)) || 1))
+        : 1;
+    const isInstallmentSeries = installmentsCount > 1;
+    const groupId = isInstallmentSeries ? createId() : null;
+    const baseDate = elements.financeDate.value;
+    const flow = elements.financeType.value;
+    const baseDescription = elements.financeDescription.value.trim();
+
+    const baseEntry = {
+        type: flow,
         category: elements.financeCategory.value,
         method: elements.financeMethod ? elements.financeMethod.value : "",
-        status: elements.financeStatus ? elements.financeStatus.value : "",
         responsible: elements.financeResponsible ? elements.financeResponsible.value.trim() : "",
         contractType: elements.financeContractType ? elements.financeContractType.value : "",
         amount: Number(elements.financeAmount.value),
-        date: elements.financeDate.value,
-        clientId: elements.financeClient.value,
-        description: elements.financeDescription.value.trim(),
-        createdAt: new Date().toISOString()
-    });
+        clientId: elements.financeClient.value
+    };
+
+    const newEntries = [];
+    for (let index = 0; index < installmentsCount; index += 1) {
+        const entryDate = index === 0 ? baseDate : addMonthsISO(baseDate, index);
+        // Em série parcelada, a situação de cada parcela é decidida pela própria data (futura
+        // = Pendente); no lançamento único, respeita a Situação escolhida no formulário.
+        const status = isInstallmentSeries
+            ? (entryDate > todayISO() ? "Pendente" : (flow === "Saída" ? "Pago" : "Recebido"))
+            : (elements.financeStatus ? elements.financeStatus.value : "");
+
+        newEntries.push({
+            id: createId(),
+            ...baseEntry,
+            status,
+            date: entryDate,
+            description: isInstallmentSeries ? `${baseDescription} (${index + 1}/${installmentsCount})` : baseDescription,
+            installmentGroupId: groupId,
+            installmentIndex: isInstallmentSeries ? index + 1 : null,
+            installmentTotal: isInstallmentSeries ? installmentsCount : null,
+            createdAt: new Date().toISOString()
+        });
+    }
+
+    appState.finance = [...newEntries, ...appState.finance];
 
     await saveStorage(STORAGE_KEYS.finance, appState.finance);
     elements.financeForm.reset();
@@ -71,6 +100,9 @@ export async function handleFinanceSubmit(event) {
         elements.financeContractType.value = "";
     }
     elements.financeDate.value = todayISO();
+    if (elements.financeInstallmentsCount) {
+        elements.financeInstallmentsCount.value = 1;
+    }
     updateFinanceCategoryOptions();
     updateFinanceStatusOptions();
     renderAll();
@@ -173,26 +205,28 @@ export function renderFinance() {
             .filter((entry) => getFinanceMonthKey(entry.date) === monthKey)
             .sort((a, b) => b.date.localeCompare(a.date));
 
-        const monthTotals = entriesOfMonth.reduce((totals, entry) => {
-            const amount = Number(entry.amount) || 0;
-            if (getFinanceFlow(entry) === "Entrada") {
-                totals.balance += amount;
-            } else {
-                totals.balance -= amount;
-            }
-            return totals;
-        }, { balance: 0 });
+        const incomeEntries = entriesOfMonth.filter((entry) => getFinanceFlow(entry) === "Entrada");
+        const expenseEntries = entriesOfMonth.filter((entry) => getFinanceFlow(entry) === "Saída");
+        const incomeTotal = incomeEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
+        const expenseTotal = expenseEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
+        const monthBalance = incomeTotal - expenseTotal;
 
         const headerRow = document.createElement("tr");
         headerRow.innerHTML = `
             <td colspan="9" style="font-weight:700">
                 ${monthKey ? formatMonthLabel(monthKey) : "Sem data"}
-                <span style="font-weight:400;color:var(--color-muted)"> · Saldo do mês: ${formatCurrency(monthTotals.balance)}</span>
+                <span style="font-weight:400;color:var(--color-muted)"> · Saldo do mês: ${formatCurrency(monthBalance)}</span>
             </td>
         `;
         elements.financeTableBody.appendChild(headerRow);
 
-        entriesOfMonth.forEach((entry) => {
+        elements.financeTableBody.appendChild(buildFinanceSubgroupRow(`Entradas (${incomeEntries.length})`, incomeTotal, "#027a48"));
+        incomeEntries.forEach((entry) => {
+            elements.financeTableBody.appendChild(buildFinanceRow(entry));
+        });
+
+        elements.financeTableBody.appendChild(buildFinanceSubgroupRow(`Saídas (${expenseEntries.length})`, expenseTotal, "#b42318"));
+        expenseEntries.forEach((entry) => {
             elements.financeTableBody.appendChild(buildFinanceRow(entry));
         });
     });
@@ -200,6 +234,17 @@ export function renderFinance() {
     renderReceivables();
     renderPayables();
     renderCashFlow();
+}
+
+
+function buildFinanceSubgroupRow(label, total, color) {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+        <td colspan="9" style="background:rgba(2,32,58,0.03);font-weight:600;font-size:0.82em;color:${color}">
+            ${escapeHTML(label)} <span style="font-weight:400;color:var(--color-muted)">· ${formatCurrency(total)}</span>
+        </td>
+    `;
+    return row;
 }
 
 
@@ -257,16 +302,19 @@ export async function confirmFinanceDelete() {
 }
 
 
-// Só considera lançamentos com data até hoje — lançamentos futuros (previstos) não entram
-// no saldo/honorários/custos "realizados" para não inflar o caixa com algo que ainda não
-// aconteceu. Veja calculateFutureFinanceTotals() para os valores previstos.
+// "Realizado" agora é definido pela Situação do lançamento (Recebido/Pago), não só pela
+// data — uma parcela vencida mas ainda não confirmada (Pendente) não entra no saldo/
+// honorários/custos realizados, mesmo com a data já passada. Veja calculateFutureFinanceTotals()
+// para os valores previstos/pendentes.
 // "Honorários" e "Custo de escritório" (cards do topo) somam todas as Entradas e Saídas
-// realizadas, respectivamente — independente da categoria específica escolhida, já que o
-// modelo de categorias agora cobre vários tipos de recebimento/despesa (ver utils.js).
+// já confirmadas, independente da categoria específica escolhida, já que o modelo de
+// categorias agora cobre vários tipos de recebimento/despesa (ver utils.js).
 export function calculateFinanceTotals() {
-    const today = todayISO();
     return appState.finance
-        .filter((entry) => entry.date <= today)
+        .filter((entry) => {
+            const status = getFinanceStatus(entry);
+            return status !== "Pendente" && status !== "Cancelado";
+        })
         .reduce((totals, entry) => {
             const flow = getFinanceFlow(entry);
             const amount = Number(entry.amount) || 0;
@@ -294,17 +342,17 @@ export function calculateFinanceTotals() {
 }
 
 
-// Lançamentos com data futura (ainda não realizados): saldo líquido previsto (entradas -
-// saídas) e a contagem de quantos existem, usados no card "Lançamentos futuros".
+// Lançamentos ainda pendentes (independente da data — cobre tanto parcelas futuras quanto
+// contas já vencidas mas não confirmadas): saldo líquido previsto (entradas - saídas) e a
+// contagem de quantos existem, usados no card "Lançamentos futuros".
 export function calculateFutureFinanceTotals() {
-    const today = todayISO();
-    const futureEntries = appState.finance.filter((entry) => entry.date > today);
+    const pendingEntries = appState.finance.filter((entry) => getFinanceStatus(entry) === "Pendente");
 
-    const balance = futureEntries.reduce((total, entry) => (
+    const balance = pendingEntries.reduce((total, entry) => (
         total + (getFinanceFlow(entry) === "Entrada" ? Number(entry.amount) || 0 : -(Number(entry.amount) || 0))
     ), 0);
 
-    return { balance, count: futureEntries.length };
+    return { balance, count: pendingEntries.length };
 }
 
 
@@ -467,6 +515,9 @@ async function markFinanceStatus(entryId, newStatus) {
         entry.id === entryId ? { ...entry, status: newStatus, settledAt: new Date().toISOString() } : entry
     ));
     await saveStorage(STORAGE_KEYS.finance, appState.finance);
+    // Se este lançamento é o espelho de uma parcela de contrato, mantém a aba Contratos
+    // sincronizada (parcela passa a "paga" também por lá).
+    await syncInstallmentFromFinanceEntry(entryId, newStatus === "Recebido" || newStatus === "Pago");
     renderAll();
 }
 
@@ -587,15 +638,16 @@ export function printFinanceReport() {
                 .filter((entry) => getFinanceMonthKey(entry.date) === monthKey)
                 .sort((a, b) => b.date.localeCompare(a.date));
 
-            const monthBalance = entriesOfMonth.reduce((sum, entry) => (
-                sum + (getFinanceFlow(entry) === "Entrada" ? Number(entry.amount) || 0 : -(Number(entry.amount) || 0))
-            ), 0);
+            const incomeEntries = entriesOfMonth.filter((entry) => getFinanceFlow(entry) === "Entrada");
+            const expenseEntries = entriesOfMonth.filter((entry) => getFinanceFlow(entry) === "Saída");
+            const incomeTotal = incomeEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
+            const expenseTotal = expenseEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
+            const monthBalance = incomeTotal - expenseTotal;
 
-            const rows = entriesOfMonth.map((entry) => {
+            const buildRows = (entries) => entries.map((entry) => {
                 const client = findClient(entry.clientId);
                 return `
                     <tr>
-                        <td>${escapeHTML(getFinanceFlow(entry))}</td>
                         <td>${escapeHTML(entry.category || inferFinanceCategory(entry))}</td>
                         <td>${escapeHTML(entry.description)}</td>
                         <td>${client ? escapeHTML(client.name) : "-"}</td>
@@ -606,14 +658,20 @@ export function printFinanceReport() {
                 `;
             }).join("");
 
-            return `
-                <h3 style="margin:14px 0 4px">${monthKey ? formatMonthLabel(monthKey) : "Sem data"} — Saldo do mês: ${formatCurrency(monthBalance)}</h3>
+            const buildTable = (title, entries, total, color) => `
+                <p style="margin:8px 0 3px;font-weight:700;color:${color}">${title} (${entries.length}) — ${formatCurrency(total)}</p>
                 <table>
                     <thead>
-                        <tr><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Cliente</th><th>Valor</th><th>Data</th><th>Status</th></tr>
+                        <tr><th>Categoria</th><th>Descrição</th><th>Cliente</th><th>Valor</th><th>Data</th><th>Status</th></tr>
                     </thead>
-                    <tbody>${rows}</tbody>
+                    <tbody>${entries.length ? buildRows(entries) : '<tr><td colspan="6" style="color:#667085">Nenhum lançamento.</td></tr>'}</tbody>
                 </table>
+            `;
+
+            return `
+                <h3 style="margin:16px 0 2px">${monthKey ? formatMonthLabel(monthKey) : "Sem data"} — Saldo do mês: ${formatCurrency(monthBalance)}</h3>
+                ${buildTable("Entradas", incomeEntries, incomeTotal, "#027a48")}
+                ${buildTable("Saídas", expenseEntries, expenseTotal, "#b42318")}
             `;
         }).join("");
 

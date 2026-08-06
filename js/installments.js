@@ -58,6 +58,34 @@ export function hasInstallments(clientId) {
 
 // Chamado pelo módulo de Clientes logo após salvar o cadastro. Só gera parcelas quando o
 // status vira "Ativo" pela primeira vez (transição) e o contrato ainda não tem vencimentos.
+// Cada parcela já entra imediatamente como Conta a Receber (lançamento Entrada · Parcela ·
+// situação Pendente no Financeiro) — não é preciso esperar a confirmação do pagamento.
+// Migração única: contratos ativados antes da integração Contratos↔Financeiro geraram
+// parcelas sem lançamento espelhado no Financeiro (por isso não aparecem em Contas a
+// Receber). Cria o lançamento que falta para cada parcela existente, uma única vez.
+export async function backfillInstallmentFinanceEntries() {
+    let changed = false;
+
+    appState.installments = appState.installments.map((installment) => {
+        const hasValidEntry = installment.financeEntryId
+            && appState.finance.some((entry) => entry.id === installment.financeEntryId);
+
+        if (hasValidEntry) {
+            return installment;
+        }
+
+        const financeEntryId = upsertInstallmentFinanceEntry(installment, installment.paid ? "Recebido" : "Pendente");
+        changed = true;
+        return { ...installment, financeEntryId };
+    });
+
+    if (changed) {
+        await saveStorage(STORAGE_KEYS.installments, appState.installments);
+        await saveStorage(STORAGE_KEYS.finance, appState.finance);
+    }
+}
+
+
 export async function maybeGenerateInstallmentsOnActivation(client, previousStatus) {
     const justActivated = client.status === "Ativo" && previousStatus !== "Ativo";
     if (!justActivated || hasInstallments(client.id)) {
@@ -69,7 +97,27 @@ export async function maybeGenerateInstallmentsOnActivation(client, previousStat
         return;
     }
 
+    generated.forEach((installment) => {
+        installment.financeEntryId = upsertInstallmentFinanceEntry(installment, "Pendente");
+    });
+
     appState.installments = [...generated, ...appState.installments];
+    await saveStorage(STORAGE_KEYS.installments, appState.installments);
+    await saveStorage(STORAGE_KEYS.finance, appState.finance);
+}
+
+
+// Usado pelo Financeiro (aba Contas a Receber) quando o recebimento de uma parcela é
+// confirmado por lá em vez de pela aba Contratos — mantém os dois lados em sincronia.
+export async function syncInstallmentFromFinanceEntry(financeEntryId, paid) {
+    const installment = appState.installments.find((item) => item.financeEntryId === financeEntryId);
+    if (!installment) return;
+
+    appState.installments = appState.installments.map((item) => (
+        item.id === installment.id
+            ? { ...item, paid, paidAt: paid ? new Date().toISOString() : null }
+            : item
+    ));
     await saveStorage(STORAGE_KEYS.installments, appState.installments);
 }
 
@@ -354,48 +402,55 @@ async function toggleInstallmentPaid(installmentId) {
 }
 
 
-// Marca a parcela como paga/recebida e mantém um lançamento espelhado no Financeiro
-// (Entrada · Honorário), para que o valor só entre nos totais de honorários/saldo depois
-// de confirmado o recebimento. Ao desfazer, o lançamento espelhado é removido — evitando
-// duplicar o valor se a parcela for confirmada de novo depois.
+// Cria/atualiza o lançamento do Financeiro espelhado de uma parcela (Entrada · Parcela),
+// mantendo o mesmo id (installment.financeEntryId) para não duplicar. É esse espelhamento
+// que faz a parcela aparecer em "Contas a Receber" assim que o contrato é ativado (situação
+// "Pendente"), e sair de lá quando o recebimento é confirmado (situação "Recebido").
+function upsertInstallmentFinanceEntry(installment, status) {
+    const client = findClient(installment.clientId);
+    const financeEntryId = installment.financeEntryId || createId();
+    const financeEntry = {
+        id: financeEntryId,
+        type: "Entrada",
+        category: "Parcela",
+        status,
+        contractType: "",
+        amount: Number(installment.amount) || 0,
+        date: installment.dueDate,
+        clientId: installment.clientId,
+        description: installment.total
+            ? `Parcela ${installment.number}/${installment.total}${client ? " — " + client.name : ""}`
+            : `Parcela avulsa${client ? " — " + client.name : ""}`,
+        createdAt: new Date().toISOString()
+    };
+
+    appState.finance = [financeEntry, ...appState.finance.filter((entry) => entry.id !== financeEntryId)];
+    return financeEntryId;
+}
+
+
+function removeInstallmentFinanceEntry(installment) {
+    if (installment.financeEntryId) {
+        appState.finance = appState.finance.filter((entry) => entry.id !== installment.financeEntryId);
+    }
+}
+
+
+// Marca a parcela como paga/recebida e atualiza a situação do lançamento espelhado no
+// Financeiro para "Recebido" (assim ela sai de "Contas a Receber" e passa a contar nos
+// totais realizados). Ao desfazer, a situação volta para "Pendente" — o lançamento não é
+// apagado, só retorna para a aba de Contas a Receber.
 export async function setInstallmentPaid(installmentId, paid) {
     const installment = appState.installments.find((item) => item.id === installmentId);
     if (!installment) return;
 
-    if (paid) {
-        const client = findClient(installment.clientId);
-        const financeEntryId = installment.financeEntryId || createId();
-        const financeEntry = {
-            id: financeEntryId,
-            type: "Entrada",
-            category: "Parcela",
-            status: "Recebido",
-            contractType: "",
-            amount: Number(installment.amount) || 0,
-            date: installment.dueDate,
-            clientId: installment.clientId,
-            description: installment.total
-                ? `Parcela ${installment.number}/${installment.total} confirmada${client ? " — " + client.name : ""}`
-                : `Parcela avulsa confirmada${client ? " — " + client.name : ""}`,
-            createdAt: new Date().toISOString()
-        };
+    const financeEntryId = upsertInstallmentFinanceEntry(installment, paid ? "Recebido" : "Pendente");
 
-        appState.finance = [financeEntry, ...appState.finance.filter((entry) => entry.id !== financeEntryId)];
-        appState.installments = appState.installments.map((item) => (
-            item.id === installmentId
-                ? { ...item, paid: true, paidAt: new Date().toISOString(), financeEntryId }
-                : item
-        ));
-    } else {
-        if (installment.financeEntryId) {
-            appState.finance = appState.finance.filter((entry) => entry.id !== installment.financeEntryId);
-        }
-        appState.installments = appState.installments.map((item) => (
-            item.id === installmentId
-                ? { ...item, paid: false, paidAt: null, financeEntryId: null }
-                : item
-        ));
-    }
+    appState.installments = appState.installments.map((item) => (
+        item.id === installmentId
+            ? { ...item, paid, paidAt: paid ? new Date().toISOString() : null, financeEntryId }
+            : item
+    ));
 
     await saveStorage(STORAGE_KEYS.installments, appState.installments);
     await saveStorage(STORAGE_KEYS.finance, appState.finance);
@@ -435,7 +490,13 @@ export async function confirmInstallmentDelete() {
         return;
     }
 
-    appState.installments = appState.installments.filter((installment) => installment.id !== installmentId);
+    const installment = appState.installments.find((item) => item.id === installmentId);
+    if (installment) {
+        removeInstallmentFinanceEntry(installment);
+        await saveStorage(STORAGE_KEYS.finance, appState.finance);
+    }
+
+    appState.installments = appState.installments.filter((item) => item.id !== installmentId);
     await saveStorage(STORAGE_KEYS.installments, appState.installments);
     closeConfirmModal();
     renderAll();
@@ -515,6 +576,11 @@ export async function handleInstallmentModalSave() {
                 ? { ...installment, amount, dueDate, updatedAt: new Date().toISOString() }
                 : installment
         ));
+
+        const updated = appState.installments.find((installment) => installment.id === appState.editingInstallmentId);
+        if (updated) {
+            upsertInstallmentFinanceEntry(updated, updated.paid ? "Recebido" : "Pendente");
+        }
     } else {
         const clientId = elements.installmentClientSelect.value;
         if (!clientId) {
@@ -523,23 +589,24 @@ export async function handleInstallmentModalSave() {
             return;
         }
 
-        appState.installments = [
-            {
-                id: createId(),
-                clientId,
-                number: appState.installments.filter((item) => item.clientId === clientId).length + 1,
-                total: null, // parcela avulsa, fora do parcelamento automático
-                amount,
-                dueDate,
-                paid: false,
-                paidAt: null,
-                createdAt: new Date().toISOString()
-            },
-            ...appState.installments
-        ];
+        const newInstallment = {
+            id: createId(),
+            clientId,
+            number: appState.installments.filter((item) => item.clientId === clientId).length + 1,
+            total: null, // parcela avulsa, fora do parcelamento automático
+            amount,
+            dueDate,
+            paid: false,
+            paidAt: null,
+            createdAt: new Date().toISOString()
+        };
+        newInstallment.financeEntryId = upsertInstallmentFinanceEntry(newInstallment, "Pendente");
+
+        appState.installments = [newInstallment, ...appState.installments];
     }
 
     await saveStorage(STORAGE_KEYS.installments, appState.installments);
+    await saveStorage(STORAGE_KEYS.finance, appState.finance);
     closeInstallmentModal();
     renderAll();
 }

@@ -143,6 +143,7 @@ export function cacheElements() {
     elements.financeContractType = document.getElementById("financeContractType");
     elements.financeAmount = document.getElementById("financeAmount");
     elements.financeDate = document.getElementById("financeDate");
+    elements.financeInstallmentsCount = document.getElementById("financeInstallmentsCount");
     elements.financeClient = document.getElementById("financeClient");
     elements.financeDescription = document.getElementById("financeDescription");
     elements.financeSearch = document.getElementById("financeSearch");

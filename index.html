@@ -768,15 +768,21 @@
                             </label>
 
                             <label class="field">
-                                <span>Valor</span>
+                                <span>Valor (por parcela, se parcelado)</span>
                                 <input id="financeAmount" type="number" min="0" step="0.01" placeholder="0,00" required>
                             </label>
 
                             <label class="field">
-                                <span>Data</span>
+                                <span>Data (1ª parcela, se parcelado)</span>
                                 <input id="financeDate" type="date" required>
                             </label>
                             <p class="field-hint full-width">Use uma data futura para lançar algo já previsto (ex.: parcela a receber, pagamento agendado) — ele entra em "Lançamentos futuros" e só conta no saldo quando a data chegar.</p>
+
+                            <label class="field">
+                                <span>Parcelas</span>
+                                <input id="financeInstallmentsCount" type="number" min="1" max="60" step="1" value="1">
+                            </label>
+                            <p class="field-hint full-width">Deixe 1 para lançamento único. Acima de 1, gera uma parcela por mês a partir da Data informada (ex.: compra parcelada 4x, cheques parcelados) — cada uma entra em Contas a Receber/Pagar até o vencimento.</p>
 
                             <label class="field">
                                 <span>Cliente</span>
